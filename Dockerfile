@@ -58,6 +58,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+# Copy start.sh and fix permissions
+COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 USER nextjs
 
@@ -65,5 +68,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 
-# server.js is created by next build from the standalone output
-CMD HOSTNAME="0.0.0.0" node server.js
+# Run migrations then start the server
+CMD ["./start.sh"]

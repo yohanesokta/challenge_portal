@@ -7,8 +7,6 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: root
       MARIADB_DATABASE: coding_platform
-    ports:
-      - '3306:3306'
     volumes:
       - mariadb_data:/var/lib/mysql
 
