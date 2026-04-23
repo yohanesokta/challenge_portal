@@ -515,6 +515,35 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
             theme="vs-dark"
             value={code}
             onChange={(value) => setCode(value || "")}
+            onMount={async (editor, monaco) => {
+              // Initialize Real Python IntelliSense using Pyright LSP
+              console.log("Starting Pyright LSP initialization...");
+              try {
+                const { MonacoPyrightProvider } = require('monaco-pyright-lsp');
+                
+                // Fetch the typeshed fallback zip as ArrayBuffer
+                console.log("Fetching typeshed assets...");
+                const response = await fetch('/typeshed-fallback.zip');
+                const typeshedData = await response.arrayBuffer();
+                
+                // Pass the worker URL directly as a string
+                const workerUrl = new URL('/pyright.worker.js', window.location.origin).toString();
+                
+                const provider = new MonacoPyrightProvider(workerUrl, {
+                  typeshed: typeshedData
+                });
+                
+                console.log("Provider instanced, calling init...");
+                await provider.init(monaco);
+                
+                console.log("Provider initialized, setting up diagnostics...");
+                await provider.setupDiagnostics(editor);
+                
+                console.log("Pyright LSP is now ONLINE");
+              } catch (e) {
+                console.error("Pyright LSP Error:", e);
+              }
+            }}
             options={{
               fontSize: 14,
               minimap: { enabled: false },
@@ -524,6 +553,16 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
               padding: { top: 16, bottom: 16 },
               fontFamily: "'Fira Code', 'Courier New', monospace",
               fontLigatures: true,
+              suggestOnTriggerCharacters: true,
+              acceptSuggestionOnEnter: "on",
+              tabCompletion: "on",
+              quickSuggestions: {
+                other: true,
+                comments: false,
+                strings: true
+              },
+              formatOnType: true,
+              parameterHints: { enabled: true }
             }}
           />
         </div>
