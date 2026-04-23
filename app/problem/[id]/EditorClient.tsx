@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { submitCode, runTests, runCode, stopCode, autoSubmitOnExpire } from "@/app/actions/submission";
+import { submitCode, runTests, runCode, stopCode, autoSubmitOnExpire, getExecutionStatus, sendStdin } from "@/app/actions/submission";
 import { getProblemStatus } from "@/app/actions/problem";
 import { useRouter } from "next/navigation";
 import Timer from "../../components/Timer";
@@ -67,6 +67,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [nim, setNim] = useState("");
   const [tempNim, setTempNim] = useState("");
   const [isNimLocked, setIsNimLocked] = useState(true);
+  const [stdin, setStdin] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRunningTests, setIsRunningTests] = useState(false);
@@ -76,8 +77,11 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [allTestsPassed, setAllTestsPassed] = useState(false);
   const [testResults, setTestResults] = useState<any[]>([]);
   const [consoleOutput, setConsoleOutput] = useState<{ stdout: string; stderr: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<'tests' | 'console'>('tests');
+  const [activeTab, setActiveTab] = useState<'tests' | 'console' | 'input'>('tests');
   const [executionError, setExecutionError] = useState<string | null>(null);
+  const [interactiveInput, setInteractiveInput] = useState("");
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastAutoPromptRef = useRef<number>(0);
 
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -167,27 +171,98 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     setExecutionId(id);
     setIsExecuting(true);
     setActiveTab('console');
-    setConsoleOutput({ stdout: 'Sedang menjalankan kode...', stderr: '' });
+    setConsoleOutput({ stdout: 'Sedang menyiapkan lingkungan...', stderr: '' });
+    
     try {
-      const res = await runCode({ code, executionId: id });
+      const res = await runCode({ code, executionId: id, input: stdin });
       if (res.success) {
-        const r = res as { stdout: string; stderr: string };
-        setConsoleOutput({ stdout: r.stdout || '', stderr: r.stderr || '' });
+        startPolling(id);
       } else {
-        const r = res as { error: string };
-        setConsoleOutput({ stdout: '', stderr: r.error || 'Eksekusi program gagal.' });
+        setConsoleOutput({ stdout: '', stderr: 'Gagal memulai eksekusi.' });
+        setIsExecuting(false);
+        setExecutionId(null);
       }
     } catch {
       setConsoleOutput({ stdout: '', stderr: 'Kesalahan jaringan.' });
-    } finally {
       setIsExecuting(false);
       setExecutionId(null);
+    }
+  };
+
+  const startPolling = (id: string) => {
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await getExecutionStatus(id);
+        if (res.success && 'stdout' in res) {
+          const newStdout = res.stdout || '';
+          const newStderr = res.stderr || '';
+          setConsoleOutput({ stdout: newStdout, stderr: newStderr });
+
+          if (!res.isFinished && newStdout.length > lastAutoPromptRef.current) {
+            const lastPart = newStdout.trimEnd();
+            const lastChar = newStdout.slice(-1);
+            
+            const looksLikePrompt = 
+              lastPart.length > 0 && 
+              lastChar !== '\n' && 
+              (lastPart.endsWith(':') || lastPart.endsWith('?') || lastPart.endsWith('>') || lastPart.length < 50);
+
+            if (looksLikePrompt) {
+              lastAutoPromptRef.current = newStdout.length;
+              setTimeout(() => {
+                const val = window.prompt(`Program meminta input:\n\n${lastPart.slice(-100)}`);
+                if (val !== null) {
+                  sendStdin(id, val);
+                }
+              }, 100);
+            }
+          }
+
+          if (res.isFinished) {
+            stopPolling();
+            setIsExecuting(false);
+            setExecutionId(null);
+            lastAutoPromptRef.current = 0;
+          }
+        } else {
+          stopPolling();
+          setIsExecuting(false);
+          setExecutionId(null);
+          lastAutoPromptRef.current = 0;
+        }
+      } catch {
+        stopPolling();
+      }
+    }, 600);
+  };
+
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  const handleSendInteractiveStdin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!executionId || !interactiveInput.trim()) return;
+    
+    const textToSend = interactiveInput;
+    setInteractiveInput("");
+    
+    try {
+      await sendStdin(executionId, textToSend);
+    } catch {
+      console.error("Gagal mengirimkan input ke proses.");
     }
   };
 
   const handleStopCode = async () => {
     if (!executionId) return;
     try {
+      stopPolling();
       await stopCode(executionId);
       setConsoleOutput(prev => ({
         stdout: (prev?.stdout || '') + '\n[Eksekusi dihentikan oleh pengguna]',
@@ -463,11 +538,16 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
               >
                 Konsol {isExecuting && <span className="inline-block w-2 h-2 bg-[#007acc] rounded-full ml-1 animate-pulse"></span>}
               </button>
+              <button
+                onClick={() => setActiveTab('input')}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'input' ? 'text-[#007acc] border-b-2 border-[#007acc]' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                Masukan (Stdin)
+              </button>
             </div>
             <div className="flex items-center gap-2 pr-2">
               <button
-                onClick={() => { setTestResults([]); setConsoleOutput(null); }}
-                className="text-zinc-500 hover:text-white"
+                onClick={() => { setTestResults([]); setConsoleOutput(null); setStdin(""); }}
                 title="Bersihkan semua"
               >
                 <span className="material-symbols-outlined text-sm">block</span>
@@ -522,20 +602,53 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                   ))}
                 </div>
               </div>
+            ) : activeTab === 'console' ? (
+              <div className="bg-black/20 font-mono text-sm p-4 text-zinc-300 flex flex-col h-full overflow-hidden">
+                <div className="flex-1 overflow-y-auto custom-scrollbar mb-2">
+                  {!consoleOutput && (
+                    <div className="flex items-center justify-center text-zinc-600 italic text-sm py-4">
+                      Konsol kosong. Klik "Jalankan" untuk melihat keluaran program.
+                    </div>
+                  )}
+                  {consoleOutput && (
+                    <div className="whitespace-pre-wrap break-all">
+                      {consoleOutput.stdout && <div className="text-zinc-100 font-mono">{consoleOutput.stdout}</div>}
+                      {consoleOutput.stderr && <div className="text-red-400 mt-2 font-mono">{consoleOutput.stderr}</div>}
+                      <div ref={consoleEndRef} />
+                    </div>
+                  )}
+                </div>
+
+                {isExecuting && (
+                  <div className="flex-shrink-0 mt-2 border-t border-[#333333] pt-4 flex justify-center">
+                    <button 
+                      onClick={() => {
+                        const val = window.prompt("Program sedang menunggu input. Masukkan teks di sini:");
+                        if (val !== null) {
+                          sendStdin(executionId!, val);
+                        }
+                      }}
+                      className="bg-[#007acc] hover:bg-[#005f9e] text-white px-6 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-sm">keyboard</span>
+                      Kirim Input ke Program
+                    </button>
+                    <p className="hidden md:block absolute right-4 text-[9px] text-zinc-500 uppercase font-bold tracking-widest mt-2 animate-pulse">
+                      Menunggu Input...
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="bg-black/20 font-mono text-sm p-4 text-zinc-300">
-                {!consoleOutput && (
-                  <div className="flex items-center justify-center text-zinc-600 italic text-sm py-4">
-                    Konsol kosong. Klik "Jalankan" untuk melihat keluaran program.
-                  </div>
-                )}
-                {consoleOutput && (
-                  <div className="whitespace-pre-wrap break-all">
-                    {consoleOutput.stdout && <div className="text-zinc-100">{consoleOutput.stdout}</div>}
-                    {consoleOutput.stderr && <div className="text-red-400 mt-2">{consoleOutput.stderr}</div>}
-                    <div ref={consoleEndRef} />
-                  </div>
-                )}
+              <div className="p-4 h-full flex flex-col">
+                <label className="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-2">Masukan Standar (Stdin)</label>
+                <textarea
+                  value={stdin}
+                  onChange={(e) => setStdin(e.target.value)}
+                  className="flex-1 bg-[#1e1e1e] border border-[#333333] text-zinc-300 p-4 font-mono text-sm focus:outline-none focus:border-[#007acc] rounded resize-none"
+                  placeholder="Ketikkan data input di sini. Setiap input() akan membaca satu baris dari sini..."
+                />
+                <p className="mt-2 text-[10px] text-zinc-600 italic">Input ini akan dikirimkan ke program saat Anda mengeklik tombol "Jalankan".</p>
               </div>
             )}
           </div>
