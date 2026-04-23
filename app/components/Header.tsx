@@ -16,11 +16,11 @@ export default function Header() {
             className={`${isDashboard ? 'text-white border-b-2 border-[#007acc]' : 'text-zinc-400 hover:text-zinc-200'} h-full flex items-center px-1 transition-colors`} 
             href="/"
           >
-            Dashboard
+            Dasbor
           </Link>
           {isDashboard && (
             <Link className="text-zinc-400 hover:text-zinc-200 transition-colors h-full flex items-center px-1" href="/admin">
-              Admin Panel
+              Panel Admin
             </Link>
           )}
         </nav>

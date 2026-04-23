@@ -13,27 +13,25 @@ export default async function Home() {
       <Header />
       <div className="flex min-h-[calc(100vh-48px)]">
         <Sidebar className="hidden md:flex" />
-        {/* Main Content Canvas */}
         <main className="flex-1 md:ml-64 p-6 bg-[#1e1e1e]">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="font-h1 text-h1 text-white mb-1">Available Problems</h1>
-                <p className="font-caption text-caption text-zinc-500">Solve challenges and master your programming skills.</p>
+                <h1 className="font-h1 text-h1 text-white mb-1">Daftar Soal Tersedia</h1>
+                <p className="font-caption text-caption text-zinc-500">Selesaikan tantangan dan asah kemampuan pemrograman Anda.</p>
               </div>
               <div className="flex gap-2">
                 <button className="bg-[#252526] text-zinc-300 px-3 py-1.5 rounded border border-[#333333] text-sm hover:bg-[#2d2d2d] transition-colors flex items-center gap-2">
                   <span className="material-symbols-outlined text-xs">filter_list</span>
-                  Filter
+                  Penyaring
                 </button>
               </div>
             </div>
 
-            {/* Bento Grid for Problem Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {problems.length === 0 ? (
                 <div className="col-span-full py-12 text-center text-zinc-500">
-                  No problems available yet. Check back later!
+                  Belum ada soal tersedia saat ini. Silakan periksa kembali nanti!
                 </div>
               ) : (
                 problems.map((problem, index) => (
@@ -41,7 +39,7 @@ export default async function Home() {
                     <div>
                       <div className="flex justify-between items-start mb-4">
                         <span className="bg-[#2d2d2d] text-primary px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase border border-[#333333]">
-                          Challenge
+                          Tantangan
                         </span>
                         <span className="material-symbols-outlined text-zinc-600 group-hover:text-[#007acc] transition-colors">
                           code
@@ -60,7 +58,7 @@ export default async function Home() {
                         href={`/problem/${problem.id}`}
                         className="bg-[#007acc] text-white px-4 py-1.5 rounded text-sm font-semibold hover:opacity-90 active:scale-95 transition-all text-center"
                       >
-                        Solve
+                        Selesaikan
                       </Link>
                     </div>
                   </div>
@@ -71,11 +69,10 @@ export default async function Home() {
         </main>
       </div>
 
-      {/* Mobile Bottom NavBar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-zinc-900 border-t border-[#333333] flex justify-around items-center z-50">
         <button className="flex flex-col items-center gap-1 text-[#007acc]">
           <span className="material-symbols-outlined">dashboard</span>
-          <span className="text-[10px] font-bold">DASHBOARD</span>
+          <span className="text-[10px] font-bold">DASBOR</span>
         </button>
       </div>
     </>

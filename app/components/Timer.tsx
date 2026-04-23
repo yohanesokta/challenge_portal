@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface TimerProps {
   endTime?: Date | null;
-  startTime?: Date | null; // for countdown-to-start mode
+  startTime?: Date | null;
   mode?: 'countdown-to-end' | 'countdown-to-start';
   onExpire?: () => void;
 }
@@ -34,7 +34,6 @@ export default function Timer({ endTime, startTime, mode = 'countdown-to-end', o
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-      // Mark as urgent when less than 5 minutes remain (only for countdown-to-end)
       if (mode === 'countdown-to-end') {
         setIsUrgent(distance < 5 * 60 * 1000);
       }

@@ -16,14 +16,13 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <Header />
-      <div className="flex min-h-[calc(100vh-48px)]">
-        <main className="flex-1 p-0">
-          <div className="flex h-full flex-col lg:flex-row">
-            {/* Split layout: Problem Description on left, Editor on right */}
+      <div className="flex h-[calc(100vh-48px)] overflow-hidden">
+        <main className="flex-1 p-0 overflow-hidden">
+          <div className="flex h-full flex-col lg:flex-row overflow-hidden">
             <div className="w-full lg:w-1/3 p-6 bg-[#1e1e1e] border-r border-[#333333] overflow-y-auto custom-scrollbar">
               <div className="flex items-center gap-2 mb-4">
                 <span className="bg-[#2d2d2d] text-primary px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase border border-[#333333]">
-                  Problem {problem.id}
+                  ID Soal: {problem.id}
                 </span>
               </div>
               <h1 className="font-h1 text-h1 text-white mb-4">{problem.title}</h1>
@@ -35,18 +34,18 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
               </div>
 
               <div className="mt-8">
-                <h3 className="text-white font-bold mb-4">Test Cases</h3>
+                <h3 className="text-white font-bold mb-4">Kasus Pengujian</h3>
                 <div className="space-y-4">
                   {problem.testCases.map((tc, idx) => (
                     <div key={idx} className="bg-[#252526] p-4 rounded border border-[#333333]">
                       <div className="mb-2">
-                        <span className="text-xs text-zinc-500 font-bold uppercase block mb-1">Input</span>
+                        <span className="text-xs text-zinc-500 font-bold uppercase block mb-1">Masukan (Input)</span>
                         <code className="bg-[#1e1e1e] p-2 block rounded text-sm text-zinc-300 font-mono whitespace-pre-wrap">
                           {tc.input}
                         </code>
                       </div>
                       <div>
-                        <span className="text-xs text-zinc-500 font-bold uppercase block mb-1">Expected Output</span>
+                        <span className="text-xs text-zinc-500 font-bold uppercase block mb-1">Keluaran yang Diharapkan (Expected Output)</span>
                         <code className="bg-[#1e1e1e] p-2 block rounded text-sm text-zinc-300 font-mono whitespace-pre-wrap">
                           {tc.expectedOutput}
                         </code>

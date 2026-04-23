@@ -33,7 +33,6 @@ function getProblemStatus(p: Problem): { label: string; color: string } {
         return { label: 'Sedang Berjalan', color: 'bg-green-900/40 text-green-400 border-green-900/50' };
     }
 
-    // manual mode
     if (!p.startTime) {
         return { label: 'Belum Dimulai', color: 'bg-purple-900/40 text-purple-400 border-purple-900/50' };
     }
@@ -51,7 +50,7 @@ function getProblemStatus(p: Problem): { label: string; color: string } {
 
 export default function ProblemsList({ problems }: ProblemsListProps) {
     const handleDelete = async (id: number) => {
-        if (confirm("Apakah kamu yakin ingin menghapus soal ini?")) {
+        if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
             const { deleteProblem } = await import('@/app/actions/problem');
             await deleteProblem(id);
         }
@@ -72,7 +71,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h3 className="text-white font-bold">{p.title}</h3>
                                         {!p.isPublic && (
-                                            <span className="text-[9px] bg-orange-900/40 text-orange-400 px-1.5 py-0.5 rounded border border-orange-900/50 font-bold uppercase tracking-wider">Private</span>
+                                            <span className="text-[9px] bg-orange-900/40 text-orange-400 px-1.5 py-0.5 rounded border border-orange-900/50 font-bold uppercase tracking-wider">Privat</span>
                                         )}
                                         <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-wider ${status.color}`}>
                                             {status.label}
@@ -81,7 +80,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                     <div className="flex gap-4 text-[10px] uppercase font-bold text-zinc-500 flex-wrap">
                                         <span>ID: {p.id}</span>
                                         <span className={`px-1.5 py-0.5 rounded border text-[9px] ${p.timingMode === 'manual' ? 'bg-purple-900/40 text-purple-400 border-purple-900/50' : 'bg-blue-900/40 text-blue-400 border-blue-900/50'}`}>
-                                            {p.timingMode === 'manual' ? '⏱ Manual Start' : '📅 Terjadwal'}
+                                            {p.timingMode === 'manual' ? '⏱ Mulai Manual' : '📅 Terjadwal'}
                                         </span>
                                         {p.timingMode === 'scheduled' && p.startTime && (
                                             <span>Mulai: {new Date(p.startTime).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</span>
@@ -99,12 +98,11 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                 </div>
 
                                 <div className="flex gap-2 items-center ml-4 shrink-0">
-                                    {/* Manual mode: Start/Restart button */}
                                     {p.timingMode === 'manual' && (() => {
                                         const s = getProblemStatus(p);
                                         const isRunning = s.label === 'Sedang Berjalan';
                                         const isFinished = s.label === 'Sesi Selesai';
-                                        const label = isRunning ? 'RESTART' : (isFinished ? 'MULAI ULANG' : 'MULAI');
+                                        const label = isRunning ? 'MULAI ULANG' : (isFinished ? 'MULAI KEMBALI' : 'MULAI');
                                         const icon = isRunning ? 'restart_alt' : 'play_circle';
                                         const color = isRunning
                                             ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-900/20'
@@ -113,8 +111,8 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                             <button
                                                 onClick={async () => {
                                                     const msg = isRunning
-                                                        ? `Restart sesi "${p.title}"? Timer akan direset dan mahasiswa yang sedang mengerjakan akan kehilangan sisa waktu.`
-                                                        : `Mulai sesi "${p.title}"? Ini akan memulai countdown ${p.duration} menit untuk semua mahasiswa sekarang.`;
+                                                        ? `Mulai ulang sesi "${p.title}"? Pengatur waktu akan diatur ulang dan mahasiswa yang sedang mengerjakan akan kehilangan sisa waktu.`
+                                                        : `Mulai sesi "${p.title}"? Tindakan ini akan memulai hitung mundur selama ${p.duration} menit untuk seluruh mahasiswa saat ini.`;
                                                     if (confirm(msg)) {
                                                         await startProblemManual(p.id);
                                                     }
@@ -137,7 +135,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                     <Link
                                         href={`/admin/problem/${p.id}/edit`}
                                         className="p-2 text-zinc-400 hover:text-[#007acc] transition-colors"
-                                        title="Edit Soal"
+                                        title="Ubah Soal"
                                     >
                                         <span className="material-symbols-outlined text-sm">edit</span>
                                     </Link>

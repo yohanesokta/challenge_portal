@@ -56,10 +56,10 @@ export default function NewProblem() {
       if (res.success) {
         router.push("/admin/dashboard");
       } else {
-        alert("Failed to create problem: " + res.error);
+        alert("Gagal membuat soal: " + res.error);
       }
     } catch (e) {
-      alert("Network error occurred.");
+      alert("Terjadi kesalahan jaringan.");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,42 +70,41 @@ export default function NewProblem() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Create New Problem</h1>
-            <Link href="/admin/dashboard" className="text-[#007acc] hover:underline">&larr; Back to Dashboard</Link>
+            <h1 className="text-3xl font-bold text-white mb-2">Buat Soal Baru</h1>
+            <Link href="/admin/dashboard" className="text-[#007acc] hover:underline">&larr; Kembali ke Dasbor</Link>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-[#252526] border border-[#333333] rounded-lg p-6 space-y-8 shadow-xl">
-          {/* Basic Info */}
           <section className="space-y-6">
-            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Problem Info</h2>
+            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Informasi Soal</h2>
             <div>
-              <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Title</label>
+              <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Judul</label>
               <input 
                 required
                 type="text" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
-                placeholder="e.g. Array Manipulation"
+                placeholder="Contoh: Manipulasi Larik (Array)"
               />
             </div>
 
             <div>
-              <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Description / Instructions (Markdown)</label>
+              <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Deskripsi / Instruksi (Markdown)</label>
               <textarea 
                 required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}
                 className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
-                placeholder="Describe the problem..."
+                placeholder="Deskripsikan soal di sini..."
               />
             </div>
           </section>
 
           <section className="space-y-6">
-            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Timing & Scheduling</h2>
+            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Pengaturan Waktu & Penjadwalan</h2>
             
             <div className="flex gap-4 mb-6">
               <button
@@ -113,21 +112,21 @@ export default function NewProblem() {
                 onClick={() => setTimingMode('scheduled')}
                 className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${timingMode === 'scheduled' ? 'bg-[#007acc]/20 border-[#007acc] text-[#007acc]' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
               >
-                Scheduled (Date & Time)
+                Terjadwal (Tanggal & Waktu)
               </button>
               <button
                 type="button"
                 onClick={() => setTimingMode('manual')}
                 className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${timingMode === 'manual' ? 'bg-purple-900/20 border-purple-600 text-purple-400' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
               >
-                Manual Start (Admin Control)
+                Mulai Manual (Kontrol Administrator)
               </button>
             </div>
 
             {timingMode === 'scheduled' ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Start Date & Time</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Tanggal & Waktu Mulai</label>
                   <input 
                     type="datetime-local" 
                     value={startTime}
@@ -136,7 +135,7 @@ export default function NewProblem() {
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">End Date & Time</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Tanggal & Waktu Selesai</label>
                   <input 
                     type="datetime-local" 
                     value={endTime}
@@ -145,13 +144,13 @@ export default function NewProblem() {
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Duration (Optional Minutes)</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Durasi (Menit - Opsional)</label>
                   <input 
                     type="number" 
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                     className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
-                    placeholder="e.g. 60"
+                    placeholder="Contoh: 60"
                   />
                 </div>
               </div>
@@ -160,58 +159,56 @@ export default function NewProblem() {
                 <div className="flex items-start gap-4 mb-6">
                   <span className="material-symbols-outlined text-purple-400">info</span>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    In <strong>Manual Mode</strong>, guests can open the problem and write code immediately, but they can only "Run" their code. 
-                    The "Run Tests" and "Submit" buttons will be disabled until you click <strong>"Start Challenge"</strong> from the Admin Dashboard. 
-                    The countdown will begin for everyone at that moment.
+                    Dalam <strong>Mode Manual</strong>, mahasiswa dapat membuka soal dan menulis kode segera, namun mereka hanya dapat menjalankan perintah "Jalankan". 
+                    Tombol "Jalankan Pengujian" dan "Kirimkan" akan dinonaktifkan hingga Anda mengeklik <strong>"Mulai Sesi"</strong> pada Dasbor Admin. 
+                    Hitung mundur akan dimulai secara serentak untuk semua peserta pada saat itu.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Challenge Duration (Minutes)</label>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Durasi Pengerjaan (Menit)</label>
                   <input 
                     required
                     type="number" 
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                     className="w-full bg-[#252526] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-purple-600"
-                    placeholder="e.g. 60"
+                    placeholder="Contoh: 60"
                   />
                 </div>
               </div>
             )}
           </section>
 
-          {/* Visibility Info */}
           <section className="space-y-6">
-            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Visibility</h2>
+            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Visibilitas</h2>
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setIsPublic(true)}
                 className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${isPublic ? 'bg-[#007acc]/20 border-[#007acc] text-[#007acc]' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
               >
-                Public (Visible on Home)
+                Publik (Muncul di Beranda)
               </button>
               <button
                 type="button"
                 onClick={() => setIsPublic(false)}
                 className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${!isPublic ? 'bg-orange-900/20 border-orange-600 text-orange-400' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
               >
-                Private (URL Only)
+                Privat (Hanya lewat URL)
               </button>
             </div>
-            <p className="text-[10px] text-zinc-600 italic">Private challenges will not appear in the public list but can still be accessed via their specific ID link.</p>
+            <p className="text-[10px] text-zinc-600 italic">Soal privat tidak akan muncul di daftar publik namun tetap dapat diakses melalui tautan ID spesifik.</p>
           </section>
 
-          {/* Test Cases */}
           <section className="space-y-6">
             <div className="flex justify-between items-center border-b border-[#333333] pb-2">
-              <h2 className="text-xl font-bold text-white">Test Cases</h2>
+              <h2 className="text-xl font-bold text-white">Kasus Pengujian</h2>
               <button 
                 type="button"
                 onClick={handleAddTestCase}
                 className="bg-[#007acc] hover:bg-[#005f9e] text-white text-xs font-bold px-4 py-2 rounded transition-colors"
               >
-                + Add Test Case
+                + Tambah Kasus Pengujian
               </button>
             </div>
             
@@ -231,21 +228,21 @@ export default function NewProblem() {
                   </div>
                   
                   <div className="mb-6">
-                    <label className="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-3">Validation Type</label>
+                    <label className="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-3">Tipe Validasi</label>
                     <div className="flex gap-4">
                       <button
                         type="button"
                         onClick={() => handleTestCaseChange(index, 'type', 'standard')}
                         className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${tc.type === 'standard' ? 'bg-[#007acc]/20 border-[#007acc] text-[#007acc]' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
                       >
-                        Input / Output
+                        Input / Output Standar
                       </button>
                       <button
                         type="button"
                         onClick={() => handleTestCaseChange(index, 'type', 'script')}
                         className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${tc.type === 'script' ? 'bg-purple-900/20 border-purple-600 text-purple-400' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
                       >
-                        Custom Script (Unit Test)
+                        Skrip Kustom (Unit Test)
                       </button>
                     </div>
                   </div>
@@ -253,32 +250,32 @@ export default function NewProblem() {
                   {tc.type === 'standard' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Stdin Input</label>
+                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Input (Stdin)</label>
                         <textarea 
                           required
                           value={tc.input}
                           onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
                           rows={4}
                           className="w-full bg-[#252526] border border-[#333333] text-white rounded p-3 text-sm font-mono focus:outline-none focus:border-[#007acc]"
-                          placeholder="What the program reads..."
+                          placeholder="Input yang dibaca program..."
                         />
                       </div>
                       <div>
-                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Expected Stdout</label>
+                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Output yang Diharapkan (Stdout)</label>
                         <textarea 
                           required
                           value={tc.expectedOutput}
                           onChange={(e) => handleTestCaseChange(index, 'expectedOutput', e.target.value)}
                           rows={4}
                           className="w-full bg-[#252526] border border-[#333333] text-white rounded p-3 text-sm font-mono focus:outline-none focus:border-[#007acc]"
-                          placeholder="What the program should print..."
+                          placeholder="Hasil yang seharusnya dicetak program..."
                         />
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Test Script (Python)</label>
-                      <p className="text-[10px] text-zinc-600 mb-3 italic">This code will be appended to the student's code. Use `assert` statements to validate.</p>
+                      <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Skrip Pengujian (Python)</label>
+                      <p className="text-[10px] text-zinc-600 mb-3 italic">Kode ini akan dilampirkan setelah kode mahasiswa. Gunakan pernyataan `assert` untuk validasi.</p>
                       <textarea 
                         required
                         value={tc.testScript}
@@ -295,13 +292,13 @@ export default function NewProblem() {
           </section>
 
           <div className="pt-8 border-t border-[#333333] flex justify-end gap-4">
-            <Link href="/admin/dashboard" className="px-6 py-3 text-zinc-500 hover:text-white transition-colors">Cancel</Link>
+            <Link href="/admin/dashboard" className="px-6 py-3 text-zinc-500 hover:text-white transition-colors">Batal</Link>
             <button 
               type="submit"
               disabled={isSubmitting}
               className="bg-[#007acc] text-white px-10 py-3 rounded-lg font-bold hover:bg-[#005f9e] transition-all disabled:opacity-50 shadow-lg shadow-[#007acc]/20"
             >
-              {isSubmitting ? 'Creating Challenge...' : 'Create Challenge'}
+              {isSubmitting ? 'Sedang Membuat Soal...' : 'Buat Soal'}
             </button>
           </div>
         </form>
