@@ -82,6 +82,8 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [interactiveInput, setInteractiveInput] = useState("");
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastAutoPromptRef = useRef<number>(0);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [promptContent, setPromptContent] = useState("");
 
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -209,14 +211,10 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
               lastChar !== '\n' && 
               (lastPart.endsWith(':') || lastPart.endsWith('?') || lastPart.endsWith('>') || lastPart.length < 50);
 
-            if (looksLikePrompt) {
+            if (looksLikePrompt && !showPrompt) {
               lastAutoPromptRef.current = newStdout.length;
-              setTimeout(() => {
-                const val = window.prompt(`Program meminta input:\n\n${lastPart.slice(-100)}`);
-                if (val !== null) {
-                  sendStdin(id, val);
-                }
-              }, 100);
+              setPromptContent(lastPart.slice(-100));
+              setShowPrompt(true);
             }
           }
 
@@ -225,15 +223,18 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
             setIsExecuting(false);
             setExecutionId(null);
             lastAutoPromptRef.current = 0;
+            setShowPrompt(false);
           }
         } else {
           stopPolling();
           setIsExecuting(false);
           setExecutionId(null);
           lastAutoPromptRef.current = 0;
+          setShowPrompt(false);
         }
       } catch {
         stopPolling();
+        setShowPrompt(false);
       }
     }, 600);
   };
@@ -263,6 +264,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     if (!executionId) return;
     try {
       stopPolling();
+      setShowPrompt(false);
       await stopCode(executionId);
       setConsoleOutput(prev => ({
         stdout: (prev?.stdout || '') + '\n[Eksekusi dihentikan oleh pengguna]',
@@ -620,22 +622,18 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                 </div>
 
                 {isExecuting && (
-                  <div className="flex-shrink-0 mt-2 border-t border-[#333333] pt-4 flex justify-center">
+                  <div className="flex-shrink-0 mt-2 border-t border-[#333333] pt-4 flex justify-between items-center px-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-zinc-500 text-xs animate-spin">sync</span>
+                      <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Program sedang berjalan...</span>
+                    </div>
                     <button 
-                      onClick={() => {
-                        const val = window.prompt("Program sedang menunggu input. Masukkan teks di sini:");
-                        if (val !== null) {
-                          sendStdin(executionId!, val);
-                        }
-                      }}
-                      className="bg-[#007acc] hover:bg-[#005f9e] text-white px-6 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"
+                      onClick={() => setShowPrompt(true)}
+                      className="bg-[#333333] hover:bg-[#444444] text-white px-4 py-1.5 rounded text-[10px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-[#444444]"
                     >
                       <span className="material-symbols-outlined text-sm">keyboard</span>
-                      Kirim Input ke Program
+                      Kirim Masukan
                     </button>
-                    <p className="hidden md:block absolute right-4 text-[9px] text-zinc-500 uppercase font-bold tracking-widest mt-2 animate-pulse">
-                      Menunggu Input...
-                    </p>
                   </div>
                 )}
               </div>
@@ -654,6 +652,60 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
           </div>
         </div>
       </div>
+
+      {showPrompt && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#252526] border border-[#007acc]/50 rounded-xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-[#007acc]/20 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-[#007acc]">terminal</span>
+              </div>
+              <div>
+                <h3 className="text-white font-bold">Input Diperlukan</h3>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Program sedang menunggu jawaban Anda</p>
+              </div>
+            </div>
+            
+            <div className="bg-black/30 border border-[#333333] p-3 rounded-lg mb-4">
+              <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Prompt dari Program:</span>
+              <p className="text-zinc-300 font-mono text-sm italic">{promptContent || "(Tidak ada teks prompt)"}</p>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (interactiveInput.trim()) {
+                sendStdin(executionId!, interactiveInput);
+                setInteractiveInput("");
+                setShowPrompt(false);
+              }
+            }}>
+              <input 
+                autoFocus
+                type="text"
+                value={interactiveInput}
+                onChange={(e) => setInteractiveInput(e.target.value)}
+                placeholder="Ketik jawaban di sini..."
+                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded-lg p-4 focus:outline-none focus:border-[#007acc] font-mono mb-4 shadow-inner"
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPrompt(false)}
+                  className="flex-1 bg-[#2d2d2d] text-zinc-400 py-3 rounded-lg font-bold hover:text-white transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#007acc] text-white py-3 rounded-lg font-bold hover:bg-[#005f9e] transition-all shadow-lg shadow-[#007acc]/20"
+                >
+                  Kirim
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
