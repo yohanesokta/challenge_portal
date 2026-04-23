@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from "react";
-import { createProblem } from "@/app/actions/problem";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { getProblemById, updateProblem } from "@/app/actions/problem";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
 interface TestCase {
@@ -12,16 +12,42 @@ interface TestCase {
   testScript?: string;
 }
 
-export default function NewProblem() {
+export default function EditProblem() {
+  const params = useParams();
+  const id = params.id as string;
+  const router = useRouter();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [duration, setDuration] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [testCases, setTestCases] = useState<TestCase[]>([{ type: 'standard', input: "", expectedOutput: "" }]);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      const problem = await getProblemById(parseInt(id));
+      if (problem) {
+        setTitle(problem.title);
+        setDescription(problem.description);
+        setStartTime(problem.startTime ? new Date(problem.startTime).toISOString().slice(0, 16) : "");
+        setEndTime(problem.endTime ? new Date(problem.endTime).toISOString().slice(0, 16) : "");
+        setDuration(problem.duration?.toString() || "");
+        setIsPublic(problem.isPublic);
+        setTestCases(problem.testCases.map((tc: any) => ({
+            type: tc.type as 'standard' | 'script',
+            input: tc.input || "",
+            expectedOutput: tc.expectedOutput || "",
+            testScript: tc.testScript || ""
+        })));
+      }
+      setIsLoading(false);
+    }
+    fetchData();
+  }, [id]);
 
   const handleAddTestCase = () => {
     setTestCases([...testCases, { type: 'standard', input: "", expectedOutput: "" }]);
@@ -42,7 +68,7 @@ export default function NewProblem() {
     setIsSubmitting(true);
     
     try {
-      const res = await createProblem({ 
+      const res = await updateProblem(parseInt(id), { 
         title, 
         description, 
         startTime: startTime || null,
@@ -54,7 +80,7 @@ export default function NewProblem() {
       if (res.success) {
         router.push("/admin/dashboard");
       } else {
-        alert("Failed to create problem: " + res.error);
+        alert("Failed to update problem: " + res.error);
       }
     } catch (e) {
       alert("Network error occurred.");
@@ -63,12 +89,16 @@ export default function NewProblem() {
     }
   };
 
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center text-white">Loading problem data...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-[#1e1e1e] p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Create New Problem</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Edit Problem</h1>
             <Link href="/admin/dashboard" className="text-[#007acc] hover:underline">&larr; Back to Dashboard</Link>
           </div>
         </div>
@@ -96,7 +126,7 @@ export default function NewProblem() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}
-                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
+                className="w-full bg-[#1e1e1e] border border-[#333333] text-zinc-300 rounded p-3 focus:outline-none focus:border-[#007acc] font-mono"
                 placeholder="Describe the problem..."
               />
             </div>
@@ -156,7 +186,6 @@ export default function NewProblem() {
                 Private (URL Only)
               </button>
             </div>
-            <p className="text-[10px] text-zinc-600 italic">Private challenges will not appear in the public list but can still be accessed via their specific ID link.</p>
           </section>
 
           {/* Test Cases */}
@@ -258,7 +287,7 @@ export default function NewProblem() {
               disabled={isSubmitting}
               className="bg-[#007acc] text-white px-10 py-3 rounded-lg font-bold hover:bg-[#005f9e] transition-all disabled:opacity-50 shadow-lg shadow-[#007acc]/20"
             >
-              {isSubmitting ? 'Creating Challenge...' : 'Create Challenge'}
+              {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
             </button>
           </div>
         </form>

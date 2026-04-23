@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import SubmissionsList from "./SubmissionsList";
+import ProblemsList from "./ProblemsList";
 
 export const dynamic = 'force-dynamic';
 
@@ -39,34 +40,8 @@ export default async function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Problems List */}
-          <div className="bg-[#252526] border border-[#333333] rounded-lg p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Problems List</h2>
-            <div className="space-y-4">
-              {problems.length === 0 ? (
-                <p className="text-zinc-500">No problems created yet.</p>
-              ) : (
-                problems.map(p => (
-                  <div key={p.id} className="flex justify-between items-center p-4 bg-[#1e1e1e] border border-[#333333] rounded">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-white font-bold">{p.title}</h3>
-                        {!p.isPublic && (
-                          <span className="text-[9px] bg-orange-900/40 text-orange-400 px-1.5 py-0.5 rounded border border-orange-900/50 font-bold uppercase tracking-wider">Private</span>
-                        )}
-                      </div>
-                      <div className="flex gap-4 text-[10px] uppercase font-bold text-zinc-500">
-                        <span>ID: {p.id}</span>
-                        {p.startTime && <span>Start: {new Date(p.startTime).toLocaleString()}</span>}
-                        {p.endTime && <span>End: {new Date(p.endTime).toLocaleString()}</span>}
-                        {p.duration && <span>Duration: {p.duration}m</span>}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          {/* Problems List Component */}
+          <ProblemsList problems={problems as any} />
 
           {/* Submissions List Component */}
           <SubmissionsList submissions={submissions} />
