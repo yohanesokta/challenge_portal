@@ -9,6 +9,10 @@ export const problems = mysqlTable('problems', {
   duration: int('duration'), // in minutes
   timingMode: varchar('timing_mode', { length: 20 }).default('scheduled').notNull(), // 'scheduled' or 'manual'
   isPublic: boolean('is_public').default(true).notNull(),
+  // SkemaSoal
+  solutionType: varchar('solution_type', { length: 20 }).default('bebas').notNull(), // 'function' | 'class' | 'bebas'
+  functionName: varchar('function_name', { length: 100 }),
+  className: varchar('class_name', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -17,10 +21,13 @@ export const testCases = mysqlTable('test_cases', {
   problemId: int('problem_id')
     .notNull()
     .references(() => problems.id, { onDelete: 'cascade' }),
-  type: varchar('type', { length: 20 }).default('standard').notNull(), // 'standard' (input/output) or 'script' (custom python code)
-  input: text('input'),
+  // Unified Python script test case (all types)
+  testScript: text('test_script').notNull(),
+  // For 'bebas' type: expected stdout to compare against
   expectedOutput: text('expected_output'),
-  testScript: text('test_script'), // Custom python code to run against user code
+  // Legacy columns (kept for backward compat, nullable)
+  type: varchar('type', { length: 20 }).default('standard'),
+  input: text('input'),
 });
 
 export const submissions = mysqlTable('submissions', {

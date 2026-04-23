@@ -2,17 +2,27 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getProblemById, updateProblem } from "@/app/actions/problem";
-import { getSubmissions } from "@/app/actions/submission";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import SubmissionsList from "../../../dashboard/SubmissionsList";
 import ReactMarkdown from "react-markdown";
 
+type SolutionType = 'function' | 'class' | 'bebas';
+
 interface TestCase {
-  type: 'standard' | 'script';
-  input?: string;
+  testScript: string;
   expectedOutput?: string;
-  testScript?: string;
+}
+
+function getDefaultScript(solutionType: SolutionType, functionName?: string, className?: string): string {
+  if (solutionType === 'function') {
+    const fn = functionName || 'solve';
+    return `# Test untuk fungsi ${fn}\nassert ${fn}() is not None, "Fungsi harus mengembalikan nilai"\nprint("Semua test lulus!")`;
+  }
+  if (solutionType === 'class') {
+    const cls = className || 'Solution';
+    return `# Test untuk class ${cls}\nobj = ${cls}()\nassert obj is not None, "Class harus bisa diinisialisasi"\nprint("Semua test lulus!")`;
+  }
+  return `# Test untuk program bebas\n# Isi 'Output yang Diharapkan' di bawah, atau tulis skrip validasi di sini`;
 }
 
 export default function EditProblem() {
@@ -28,6 +38,9 @@ export default function EditProblem() {
   const [duration, setDuration] = useState("");
   const [timingMode, setTimingMode] = useState<'scheduled' | 'manual'>('scheduled');
   const [isPublic, setIsPublic] = useState(true);
+  const [solutionType, setSolutionType] = useState<SolutionType>('bebas');
+  const [functionName, setFunctionName] = useState("");
+  const [className, setClassName] = useState("");
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,11 +59,14 @@ export default function EditProblem() {
         setDuration(problem.duration?.toString() || "");
         setTimingMode(problem.timingMode as 'scheduled' | 'manual');
         setIsPublic(problem.isPublic);
+        setSolutionType((problem.solutionType as SolutionType) || 'bebas');
+        setFunctionName(problem.functionName || "");
+        setClassName(problem.className || "");
+
+        // Map existing test cases (support both new testScript and legacy formats)
         setTestCases(problem.testCases.map((tc: any) => ({
-            type: tc.type as 'standard' | 'script',
-            input: tc.input || "",
-            expectedOutput: tc.expectedOutput || "",
-            testScript: tc.testScript || ""
+          testScript: tc.testScript || tc.test_script || '',
+          expectedOutput: tc.expectedOutput || tc.expected_output || '',
         })));
       }
       setIsLoading(false);
@@ -59,13 +75,16 @@ export default function EditProblem() {
   }, [id]);
 
   const handleAddTestCase = () => {
-    setTestCases([...testCases, { type: 'standard', input: "", expectedOutput: "" }]);
+    setTestCases([...testCases, {
+      testScript: getDefaultScript(solutionType, functionName, className),
+      expectedOutput: ''
+    }]);
   };
 
   const handleTestCaseChange = (index: number, field: keyof TestCase, value: string) => {
-    const newTestCases = [...testCases];
-    (newTestCases[index] as any)[field] = value;
-    setTestCases(newTestCases);
+    const updated = [...testCases];
+    (updated[index] as any)[field] = value;
+    setTestCases(updated);
   };
 
   const handleRemoveTestCase = (index: number) => {
@@ -77,25 +96,28 @@ export default function EditProblem() {
     setIsSubmitting(true);
     
     try {
-      const res = await updateProblem(parseInt(id), { 
-        title, 
-        description, 
-        startTime: timingMode === 'scheduled' 
-            ? (startTime || null) 
-            : (problemRef.current?.timingMode === 'manual' ? problemRef.current?.startTime : null),
+      const res = await updateProblem(parseInt(id), {
+        title,
+        description,
+        startTime: timingMode === 'scheduled'
+          ? (startTime || null)
+          : (problemRef.current?.timingMode === 'manual' ? problemRef.current?.startTime : null),
         endTime: timingMode === 'scheduled' ? (endTime || null) : null,
         duration: duration ? parseInt(duration) : null,
         timingMode,
         isPublic,
-        testCases 
+        solutionType,
+        functionName: functionName || null,
+        className: className || null,
+        testCases,
       });
       if (res.success) {
         router.push("/admin/dashboard");
       } else {
-        alert("Failed to update problem: " + res.error);
+        alert("Gagal menyimpan soal: " + res.error);
       }
     } catch (e) {
-      alert("Network error occurred.");
+      alert("Terjadi kesalahan jaringan.");
     } finally {
       setIsSubmitting(false);
     }
@@ -116,14 +138,14 @@ export default function EditProblem() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-[#252526] border border-[#333333] rounded-lg p-6 space-y-8 shadow-xl">
-          {/* Basic Info */}
+          {/* Informasi Soal */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Informasi Soal</h2>
             <div>
               <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Judul</label>
-              <input 
+              <input
                 required
-                type="text" 
+                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
@@ -153,7 +175,7 @@ export default function EditProblem() {
               </div>
 
               {descTab === 'edit' ? (
-                <textarea 
+                <textarea
                   required
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -166,13 +188,69 @@ export default function EditProblem() {
                   {description ? (
                     <ReactMarkdown>{description}</ReactMarkdown>
                   ) : (
-                    <span className="text-zinc-600 italic">Tidak ada pratinjau yang tersedia (deskripsi kosong).</span>
+                    <span className="text-zinc-600 italic">Tidak ada pratinjau (deskripsi kosong).</span>
                   )}
                 </div>
               )}
             </div>
           </section>
 
+          {/* SkemaSoal */}
+          <section className="space-y-6">
+            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Skema Soal</h2>
+            <p className="text-xs text-zinc-500">Pilih tipe solusi yang harus ditulis mahasiswa.</p>
+
+            <div className="grid grid-cols-3 gap-4">
+              {([
+                { id: 'function', label: 'Function', icon: 'function', desc: 'Mahasiswa menulis satu fungsi dengan nama tertentu' },
+                { id: 'class', label: 'Class', icon: 'data_object', desc: 'Mahasiswa menulis sebuah class dengan method tertentu' },
+                { id: 'bebas', label: 'Bebas', icon: 'terminal', desc: 'Program lengkap, output dibandingkan atau skrip validasi' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSolutionType(opt.id)}
+                  className={`p-4 rounded-lg border text-left transition-all ${solutionType === opt.id
+                    ? opt.id === 'function' ? 'bg-[#007acc]/15 border-[#007acc] text-[#007acc]'
+                    : opt.id === 'class' ? 'bg-emerald-900/20 border-emerald-600 text-emerald-400'
+                    : 'bg-purple-900/20 border-purple-600 text-purple-400'
+                    : 'bg-[#1e1e1e] border-[#333333] text-zinc-500 hover:border-zinc-500'}`}
+                >
+                  <span className="material-symbols-outlined text-xl mb-2 block">{opt.icon}</span>
+                  <div className="font-bold text-sm mb-1">{opt.label}</div>
+                  <div className="text-[10px] leading-relaxed opacity-80">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            {solutionType === 'function' && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Nama Fungsi yang Diperlukan</label>
+                <input
+                  type="text"
+                  value={functionName}
+                  onChange={(e) => setFunctionName(e.target.value)}
+                  className="w-full bg-[#1e1e1e] border border-[#007acc]/40 text-white rounded p-3 focus:outline-none focus:border-[#007acc] font-mono"
+                  placeholder="Contoh: hitung_faktorial"
+                />
+              </div>
+            )}
+
+            {solutionType === 'class' && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Nama Class yang Diperlukan</label>
+                <input
+                  type="text"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  className="w-full bg-[#1e1e1e] border border-emerald-600/40 text-white rounded p-3 focus:outline-none focus:border-emerald-600 font-mono"
+                  placeholder="Contoh: Stack"
+                />
+              </div>
+            )}
+          </section>
+
+          {/* Pengaturan Waktu */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Pengaturan Waktu & Penjadwalan</h2>
             
@@ -194,11 +272,11 @@ export default function EditProblem() {
             </div>
 
             {timingMode === 'scheduled' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Tanggal & Waktu Mulai</label>
-                  <input 
-                    type="datetime-local" 
+                  <input
+                    type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                     className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
@@ -206,8 +284,8 @@ export default function EditProblem() {
                 </div>
                 <div>
                   <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Tanggal & Waktu Selesai</label>
-                  <input 
-                    type="datetime-local" 
+                  <input
+                    type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                     className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
@@ -215,8 +293,8 @@ export default function EditProblem() {
                 </div>
                 <div>
                   <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Durasi (Menit)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                     className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
@@ -225,20 +303,18 @@ export default function EditProblem() {
                 </div>
               </div>
             ) : (
-              <div className="bg-[#1e1e1e] border border-[#333333] rounded-lg p-6 animate-in fade-in slide-in-from-top-2">
+              <div className="bg-[#1e1e1e] border border-[#333333] rounded-lg p-6">
                 <div className="flex items-start gap-4 mb-6">
                   <span className="material-symbols-outlined text-purple-400">info</span>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    Dalam <strong>Mode Manual</strong>, mahasiswa dapat membuka soal dan menulis kode segera, namun mereka hanya dapat menjalankan perintah "Jalankan". 
-                    Tombol "Jalankan Pengujian" dan "Kirimkan" akan dinonaktifkan hingga Anda mengeklik <strong>"Mulai Sesi"</strong> pada Dasbor Admin. 
-                    Hitung mundur akan dimulai secara serentak untuk semua peserta pada saat itu.
+                    Dalam <strong>Mode Manual</strong>, mahasiswa dapat membuka soal dan menulis kode segera, namun tombol &quot;Jalankan Pengujian&quot; dan &quot;Kirimkan&quot; terkunci hingga sesi dimulai.
                   </p>
                 </div>
                 <div>
                   <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Durasi Pengerjaan (Menit)</label>
-                  <input 
+                  <input
                     required
-                    type="number" 
+                    type="number"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                     className="w-full bg-[#252526] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-purple-600"
@@ -249,7 +325,7 @@ export default function EditProblem() {
             )}
           </section>
 
-          {/* Visibility Info */}
+          {/* Visibilitas */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Visibilitas</h2>
             <div className="flex items-center gap-4">
@@ -270,11 +346,14 @@ export default function EditProblem() {
             </div>
           </section>
 
-          {/* Test Cases */}
+          {/* Kasus Pengujian */}
           <section className="space-y-6">
             <div className="flex justify-between items-center border-b border-[#333333] pb-2">
-              <h2 className="text-xl font-bold text-white">Kasus Pengujian</h2>
-              <button 
+              <div>
+                <h2 className="text-xl font-bold text-white">Kasus Pengujian</h2>
+                <p className="text-[10px] text-zinc-500 mt-0.5 italic">Semua kasus pengujian terlihat oleh mahasiswa — tidak ada hidden test.</p>
+              </div>
+              <button
                 type="button"
                 onClick={handleAddTestCase}
                 className="bg-[#007acc] hover:bg-[#005f9e] text-white text-xs font-bold px-4 py-2 rounded transition-colors"
@@ -282,13 +361,14 @@ export default function EditProblem() {
                 + Tambah Kasus Pengujian
               </button>
             </div>
-            
+
             <div className="space-y-6">
               {testCases.map((tc, index) => (
                 <div key={index} className="bg-[#1e1e1e] border border-[#333333] rounded-lg p-6 relative shadow-inner">
-                  <div className="absolute top-4 right-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Kasus Pengujian #{index + 1}</span>
                     {testCases.length > 1 && (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleRemoveTestCase(index)}
                         className="text-red-500 hover:text-red-400 transition-colors"
@@ -297,63 +377,39 @@ export default function EditProblem() {
                       </button>
                     )}
                   </div>
-                  
-                  <div className="mb-6">
-                    <label className="block text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-3">Tipe Validasi</label>
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => handleTestCaseChange(index, 'type', 'standard')}
-                        className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${tc.type === 'standard' ? 'bg-[#007acc]/20 border-[#007acc] text-[#007acc]' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
-                      >
-                        Input / Output Standar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleTestCaseChange(index, 'type', 'script')}
-                        className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${tc.type === 'script' ? 'bg-purple-900/20 border-purple-600 text-purple-400' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
-                      >
-                        Skrip Kustom (Unit Test)
-                      </button>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-zinc-500 text-[10px] font-bold uppercase">Skrip Pengujian (Python)</label>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        solutionType === 'function' ? 'bg-[#007acc]/20 text-[#007acc]'
+                        : solutionType === 'class' ? 'bg-emerald-900/20 text-emerald-400'
+                        : 'bg-purple-900/20 text-purple-400'
+                      }`}>
+                        {solutionType === 'function' ? 'EvaluatorFunction' : solutionType === 'class' ? 'EvaluatorClass' : 'EvaluatorBebas'}
+                      </span>
                     </div>
+                    <textarea
+                      required
+                      value={tc.testScript}
+                      onChange={(e) => handleTestCaseChange(index, 'testScript', e.target.value)}
+                      rows={8}
+                      className="w-full bg-[#252526] border border-[#333333] text-green-300 rounded p-4 text-sm font-mono focus:outline-none focus:border-[#007acc]"
+                      placeholder="# Tulis skrip pengujian Python di sini..."
+                      spellCheck={false}
+                    />
                   </div>
 
-                  {tc.type === 'standard' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Input (Stdin)</label>
-                        <textarea 
-                          required
-                          value={tc.input}
-                          onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
-                          rows={4}
-                          className="w-full bg-[#252526] border border-[#333333] text-white rounded p-3 text-sm font-mono focus:outline-none focus:border-[#007acc]"
-                          placeholder="Input yang dibaca program..."
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Output yang Diharapkan (Stdout)</label>
-                        <textarea 
-                          required
-                          value={tc.expectedOutput}
-                          onChange={(e) => handleTestCaseChange(index, 'expectedOutput', e.target.value)}
-                          rows={4}
-                          className="w-full bg-[#252526] border border-[#333333] text-white rounded p-3 text-sm font-mono focus:outline-none focus:border-[#007acc]"
-                          placeholder="Hasil yang seharusnya dicetak program..."
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Skrip Pengujian (Python)</label>
-                      <p className="text-[10px] text-zinc-600 mb-3 italic">Kode ini akan dilampirkan setelah kode mahasiswa. Gunakan pernyataan `assert` untuk validasi.</p>
-                      <textarea 
-                        required
-                        value={tc.testScript}
-                        onChange={(e) => handleTestCaseChange(index, 'testScript', e.target.value)}
-                        rows={8}
-                        className="w-full bg-[#252526] border border-[#333333] text-purple-200 rounded p-4 text-sm font-mono focus:outline-none focus:border-purple-600"
-                        placeholder="sol = Solution()\nassert sol.add(2, 3) == 5\nprint('Test Passed')"
+                  {solutionType === 'bebas' && (
+                    <div className="mt-4">
+                      <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Output yang Diharapkan (Stdout) — Opsional</label>
+                      <textarea
+                        value={tc.expectedOutput || ''}
+                        onChange={(e) => handleTestCaseChange(index, 'expectedOutput', e.target.value)}
+                        rows={3}
+                        className="w-full bg-[#252526] border border-[#333333] text-zinc-300 rounded p-3 text-sm font-mono focus:outline-none focus:border-purple-600"
+                        placeholder="Contoh: Hello, World!"
+                        spellCheck={false}
                       />
                     </div>
                   )}
@@ -364,7 +420,7 @@ export default function EditProblem() {
 
           <div className="pt-8 border-t border-[#333333] flex justify-end gap-4">
             <Link href="/admin/dashboard" className="px-6 py-3 text-zinc-500 hover:text-white transition-colors">Batal</Link>
-            <button 
+            <button
               type="submit"
               disabled={isSubmitting}
               className="bg-[#007acc] text-white px-10 py-3 rounded-lg font-bold hover:bg-[#005f9e] transition-all disabled:opacity-50 shadow-lg shadow-[#007acc]/20"

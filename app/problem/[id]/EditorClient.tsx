@@ -15,6 +15,33 @@ interface EditorClientProps {
   duration?: number | null;
   timingMode: 'scheduled' | 'manual';
   startTime?: Date | null;
+  solutionType?: 'function' | 'class' | 'bebas';
+  functionName?: string;
+  className?: string;
+}
+
+function getStarterCode(solutionType?: string, functionName?: string, className?: string): string {
+  if (solutionType === 'function') {
+    const fn = functionName || 'solve';
+    return `def ${fn}():
+    # Tulis kode Python Anda di sini
+    pass
+`;
+  }
+  if (solutionType === 'class') {
+    const cls = className || 'Solution';
+    return `class ${cls}:
+    def __init__(self):
+        # Inisialisasi atribut jika diperlukan
+        pass
+
+    # Tambahkan method sesuai instruksi
+`;
+  }
+  // bebas
+  return `# Tulis kode Python Anda di sini
+
+`;
 }
 
 function computePhase(
@@ -54,7 +81,7 @@ function computePhase(
   return { phase: 'in_progress', effectiveEndTime: null };
 }
 
-export default function EditorClient({ problemId, endTime, duration, timingMode, startTime }: EditorClientProps) {
+export default function EditorClient({ problemId, endTime, duration, timingMode, startTime, solutionType, functionName, className }: EditorClientProps) {
   const router = useRouter();
 
   const initial = computePhase(timingMode, startTime, endTime, duration);
@@ -63,7 +90,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [effectiveEndTime, setEffectiveEndTime] = useState<Date | null>(initial.effectiveEndTime);
   const [currentStartTime, setCurrentStartTime] = useState<Date | null>(startTime ? new Date(startTime) : null);
 
-  const [code, setCode] = useState("def solve():\n    # Tulis kode Python Anda di sini\n    pass\n\nsolve()\n");
+  const [code, setCode] = useState(() => getStarterCode(solutionType, functionName, className));
   const [nim, setNim] = useState("");
   const [tempNim, setTempNim] = useState("");
   const [isNimLocked, setIsNimLocked] = useState(true);
@@ -622,20 +649,31 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
                 <div className="grid gap-3">
                   {testResults.map((result, idx) => (
-                    <div key={idx} className={`border rounded p-3 ${result.passed ? 'bg-green-900/10 border-green-900/30' : 'bg-red-900/10 border-red-900/30'}`}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-white">Kasus Pengujian #{idx + 1} ({result.type})</span>
+                    <div key={idx} className={`border rounded overflow-hidden ${result.passed ? 'bg-green-900/10 border-green-900/30' : 'bg-red-900/10 border-red-900/30'}`}>
+                      <div className="flex justify-between items-center p-3 pb-2">
+                        <span className="text-xs font-bold text-white">Kasus Pengujian #{idx + 1}</span>
                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${result.passed ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
                           {result.passed ? 'LULUS' : 'GAGAL'}
                         </span>
                       </div>
+
+                      {result.testScript && (
+                        <details className="px-3 pb-2">
+                          <summary className="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none">Lihat skrip pengujian...</summary>
+                          <pre className="mt-2 bg-black/30 p-2 rounded text-[10px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto border border-[#333333]">{result.testScript}</pre>
+                        </details>
+                      )}
+
                       {result.error && (
-                        <div className="text-[11px] font-mono text-red-400 bg-black/40 p-2 rounded mt-2 overflow-x-auto">
-                          {result.error}
+                        <div className="px-3 pb-3">
+                          <span className="text-[10px] text-zinc-500 block mb-1">Error:</span>
+                          <div className="text-[11px] font-mono text-red-400 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                            {result.error}
+                          </div>
                         </div>
                       )}
                       {!result.passed && result.actualOutput && (
-                        <div className="mt-2">
+                        <div className="px-3 pb-3">
                           <span className="text-[10px] text-zinc-500 block mb-1">Keluaran Aktual:</span>
                           <div className="text-[11px] font-mono text-zinc-300 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre">
                             {result.actualOutput}

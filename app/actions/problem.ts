@@ -25,21 +25,27 @@ export async function getProblemById(id: number) {
   };
 }
 
-export async function createProblem(data: { 
-  title: string; 
-  description: string; 
+export interface TestCaseInput {
+  testScript: string;
+  expectedOutput?: string; // only for 'bebas' type
+}
+
+export interface ProblemInput {
+  title: string;
+  description: string;
   startTime?: string | null;
   endTime?: string | null;
   duration?: number | null;
   timingMode: 'scheduled' | 'manual';
   isPublic?: boolean;
-  testCases: { 
-    type: string;
-    input?: string; 
-    expectedOutput?: string;
-    testScript?: string;
-  }[] 
-}) {
+  // SkemaSoal
+  solutionType: 'function' | 'class' | 'bebas';
+  functionName?: string | null;
+  className?: string | null;
+  testCases: TestCaseInput[];
+}
+
+export async function createProblem(data: ProblemInput) {
   try {
     const [result] = await db.insert(problems).values({
       title: data.title,
@@ -49,6 +55,9 @@ export async function createProblem(data: {
       duration: data.duration,
       timingMode: data.timingMode,
       isPublic: data.isPublic ?? true,
+      solutionType: data.solutionType,
+      functionName: data.functionName || null,
+      className: data.className || null,
     });
     
     const insertedId = (result as any).insertId;
@@ -57,10 +66,11 @@ export async function createProblem(data: {
       await db.insert(testCases).values(
         data.testCases.map(tc => ({
           problemId: insertedId,
-          type: tc.type,
-          input: tc.input || null,
+          testScript: tc.testScript,
           expectedOutput: tc.expectedOutput || null,
-          testScript: tc.testScript || null,
+          // legacy fields kept as null for new records
+          type: data.solutionType === 'bebas' ? 'standard' : 'script',
+          input: null,
         }))
       );
     }
@@ -74,21 +84,7 @@ export async function createProblem(data: {
   }
 }
 
-export async function updateProblem(id: number, data: { 
-  title: string; 
-  description: string; 
-  startTime?: string | null;
-  endTime?: string | null;
-  duration?: number | null;
-  timingMode: 'scheduled' | 'manual';
-  isPublic?: boolean;
-  testCases: { 
-    type: string;
-    input?: string; 
-    expectedOutput?: string;
-    testScript?: string;
-  }[] 
-}) {
+export async function updateProblem(id: number, data: ProblemInput) {
   try {
     await db.update(problems).set({
       title: data.title,
@@ -98,19 +94,22 @@ export async function updateProblem(id: number, data: {
       duration: data.duration,
       timingMode: data.timingMode,
       isPublic: data.isPublic ?? true,
+      solutionType: data.solutionType,
+      functionName: data.functionName || null,
+      className: data.className || null,
     }).where(eq(problems.id, id));
     
-    // Replace test cases: simplest way for a MVP is delete then re-insert
+    // Replace test cases: delete then re-insert
     await db.delete(testCases).where(eq(testCases.problemId, id));
     
     if (data.testCases && data.testCases.length > 0) {
       await db.insert(testCases).values(
         data.testCases.map(tc => ({
           problemId: id,
-          type: tc.type,
-          input: tc.input || null,
+          testScript: tc.testScript,
           expectedOutput: tc.expectedOutput || null,
-          testScript: tc.testScript || null,
+          type: data.solutionType === 'bebas' ? 'standard' : 'script',
+          input: null,
         }))
       );
     }

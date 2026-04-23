@@ -10,6 +10,10 @@ import { writeFile, unlink } from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Interactive execution session management
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface ExecutionSession {
   process: ChildProcess;
   stdout: string;
@@ -31,10 +35,13 @@ setInterval(() => {
   }
 }, 10000);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Core Python runner
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function runPythonCodeInternal(
-  code: string, 
-  input?: string, 
-  executionId?: string
+  code: string,
+  input?: string
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
   const tmpFilePath = path.join(os.tmpdir(), `sub-${Date.now()}-${Math.floor(Math.random() * 1000)}.py`);
 
@@ -79,6 +86,88 @@ async function runPythonCodeInternal(
     } catch (e) { }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modular Evaluators
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * EvaluatorFunction:
+ * Append test_script after user code then run.
+ * Test script calls the function by name and uses assert to validate.
+ * Pass = exitCode 0, Fail = non-zero (AssertionError counts as fail).
+ */
+async function evaluatorFunction(
+  userCode: string,
+  testScript: string
+): Promise<{ passed: boolean; actualOutput: string; error: string }> {
+  const combined = `${userCode}\n\n# --- Test Script ---\n${testScript}`;
+  const result = await runPythonCodeInternal(combined);
+  return {
+    passed: result.exitCode === 0,
+    actualOutput: result.stdout,
+    error: result.stderr,
+  };
+}
+
+/**
+ * EvaluatorClass:
+ * Same as EvaluatorFunction — append test script, run, check exit code.
+ * Test script instantiates the class and calls methods.
+ */
+async function evaluatorClass(
+  userCode: string,
+  testScript: string
+): Promise<{ passed: boolean; actualOutput: string; error: string }> {
+  const combined = `${userCode}\n\n# --- Test Script ---\n${testScript}`;
+  const result = await runPythonCodeInternal(combined);
+  return {
+    passed: result.exitCode === 0,
+    actualOutput: result.stdout,
+    error: result.stderr,
+  };
+}
+
+/**
+ * EvaluatorBebas:
+ * Run user code as a full program, then compare stdout with expectedOutput.
+ * If testScript is provided (non-empty), use it as a wrapper around user code.
+ * Fall back to stdout comparison using expectedOutput.
+ */
+async function evaluatorBebas(
+  userCode: string,
+  testScript: string,
+  expectedOutput?: string | null
+): Promise<{ passed: boolean; actualOutput: string; error: string }> {
+  // If testScript has real content (not just comment), use it as evaluator
+  const scriptLines = testScript.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+  const hasScript = scriptLines.length > 0;
+
+  if (hasScript) {
+    const combined = `${userCode}\n\n# --- Test Script ---\n${testScript}`;
+    const result = await runPythonCodeInternal(combined);
+    return {
+      passed: result.exitCode === 0,
+      actualOutput: result.stdout,
+      error: result.stderr,
+    };
+  }
+
+  // Fallback: run code and compare stdout
+  const result = await runPythonCodeInternal(userCode);
+  const passed = result.exitCode === 0
+    ? result.stdout.trim() === (expectedOutput || '').trim()
+    : false;
+  return {
+    passed,
+    actualOutput: result.stdout,
+    error: result.stderr,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interactive run / exec session export
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function runCode(data: { code: string; executionId: string; input?: string }) {
   const tmpFilePath = path.join(os.tmpdir(), `${data.executionId}.py`);
@@ -159,6 +248,10 @@ export async function stopCode(executionId: string) {
   return { success: false };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// runTests — routes to correct evaluator based on solutionType
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function runTests(data: { problemId: number; code: string }) {
   try {
     const problem = await getProblemById(data.problemId);
@@ -166,40 +259,33 @@ export async function runTests(data: { problemId: number; code: string }) {
       return { success: false, error: 'Soal tidak ditemukan atau tidak memiliki kasus pengujian' };
     }
 
+    const solutionType = problem.solutionType || 'bebas';
     const testResults = [];
     let allPassed = true;
 
     for (const testCase of problem.testCases) {
-      let passed = false;
-      let actualOutput = '';
-      let error = '';
+      let result: { passed: boolean; actualOutput: string; error: string };
 
-      if (testCase.type === 'script') {
-        const combinedCode = `${data.code}\n\n# --- Test Script ---\n${testCase.testScript}`;
-        const result = await runPythonCodeInternal(combinedCode);
-        passed = result.exitCode === 0;
-        actualOutput = result.stdout;
-        error = result.stderr;
+      const script = testCase.testScript || '';
+
+      if (solutionType === 'function') {
+        result = await evaluatorFunction(data.code, script);
+      } else if (solutionType === 'class') {
+        result = await evaluatorClass(data.code, script);
       } else {
-        const result = await runPythonCodeInternal(data.code, testCase.input || '');
-        actualOutput = result.stdout;
-        error = result.stderr;
-
-        if (result.exitCode === 0) {
-          passed = result.stdout.trim() === (testCase.expectedOutput || '').trim();
-        } else {
-          passed = false;
-        }
+        // bebas
+        result = await evaluatorBebas(data.code, script, testCase.expectedOutput);
       }
 
-      if (!passed) allPassed = false;
+      if (!result.passed) allPassed = false;
 
       testResults.push({
         id: testCase.id,
-        passed,
-        actualOutput,
-        error,
-        type: testCase.type
+        passed: result.passed,
+        actualOutput: result.actualOutput,
+        error: result.error,
+        testScript: script,
+        solutionType,
       });
     }
 
@@ -209,6 +295,10 @@ export async function runTests(data: { problemId: number; code: string }) {
     return { success: false, error: 'Gagal menjalankan pengujian' };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Submit
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function autoSubmitOnExpire(data: { nim: string; problemId: number; code: string }) {
   try {
