@@ -441,7 +441,10 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
       <div className="flex bg-[#252526] border-b border-[#333333] px-4 py-2 items-center justify-between z-10">
         <div className="flex items-center gap-4">
           <div className="flex gap-2">
-            <span className="text-white text-xs font-mono bg-[#1e1e1e] border border-[#333333] px-3 py-1 rounded">main.py</span>
+            <span className="text-white text-xs font-mono bg-[#1e1e1e] border border-[#333333] px-3 py-1 rounded flex items-center gap-2">
+              <span className="material-symbols-outlined text-[14px] text-blue-400">description</span>
+              main.py
+            </span>
           </div>
           <div className="h-6 w-[1px] bg-[#333333]"></div>
           {nim && (
