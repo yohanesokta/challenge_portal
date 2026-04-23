@@ -2,6 +2,7 @@ import { getProblems } from "@/app/actions/problem";
 import Link from "next/link";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
+import ReactMarkdown from "react-markdown";
 
 export const dynamic = 'force-dynamic';
 
@@ -46,9 +47,11 @@ export default async function Home() {
                         </span>
                       </div>
                       <h2 className="font-h2 text-h2 text-white mb-2">{problem.title}</h2>
-                      <p className="font-body-main text-body-main text-zinc-400 line-clamp-2">
-                        {problem.description}
-                      </p>
+                      <div className="font-body-main text-body-main text-zinc-400 line-clamp-2 prose prose-invert prose-xs max-w-none">
+                        <ReactMarkdown>
+                          {problem.description}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                     <div className="mt-6 flex items-center justify-between">
                       <div className="text-zinc-500 text-xs flex items-center gap-1">

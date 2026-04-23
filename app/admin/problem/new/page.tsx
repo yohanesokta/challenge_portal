@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createProblem } from "@/app/actions/problem";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 
 interface TestCase {
   type: 'standard' | 'script';
@@ -22,6 +23,7 @@ export default function NewProblem() {
   const [isPublic, setIsPublic] = useState(true);
   const [testCases, setTestCases] = useState<TestCase[]>([{ type: 'standard', input: "", expectedOutput: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [descTab, setDescTab] = useState<'edit' | 'preview'>('edit');
   const router = useRouter();
 
   const handleAddTestCase = () => {
@@ -91,15 +93,44 @@ export default function NewProblem() {
             </div>
 
             <div>
-              <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Deskripsi / Instruksi (Markdown)</label>
-              <textarea 
-                required
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={5}
-                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
-                placeholder="Deskripsikan soal di sini..."
-              />
+              <div className="flex justify-between items-end mb-2">
+                <label className="block text-zinc-400 text-xs font-bold uppercase">Deskripsi / Instruksi (Markdown)</label>
+                <div className="flex bg-[#1e1e1e] rounded border border-[#333333] p-1">
+                  <button
+                    type="button"
+                    onClick={() => setDescTab('edit')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${descTab === 'edit' ? 'bg-[#333333] text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    KODE
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDescTab('preview')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${descTab === 'preview' ? 'bg-[#333333] text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    PRATINJAU
+                  </button>
+                </div>
+              </div>
+
+              {descTab === 'edit' ? (
+                <textarea 
+                  required
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={8}
+                  className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-4 focus:outline-none focus:border-[#007acc] font-mono text-sm shadow-inner"
+                  placeholder="Gunakan Markdown untuk deskripsi soal Anda..."
+                />
+              ) : (
+                <div className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-4 min-h-[192px] prose prose-invert prose-sm max-w-none">
+                  {description ? (
+                    <ReactMarkdown>{description}</ReactMarkdown>
+                  ) : (
+                    <span className="text-zinc-600 italic">Tidak ada pratinjau yang tersedia (deskripsi kosong).</span>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
