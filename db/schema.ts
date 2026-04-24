@@ -13,6 +13,7 @@ export const problems = mysqlTable('problems', {
   solutionType: varchar('solution_type', { length: 20 }).default('bebas').notNull(), // 'function' | 'class' | 'bebas'
   functionName: varchar('function_name', { length: 100 }),
   className: varchar('class_name', { length: 100 }),
+  shortLink: varchar('short_link', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

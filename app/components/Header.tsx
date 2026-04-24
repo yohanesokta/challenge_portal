@@ -16,7 +16,7 @@ export default function Header({ authEnabled }: { authEnabled?: boolean }) {
         <Link href="/" className="text-lg font-bold text-white tracking-tighter">CodeLab JAI</Link>
         <nav className="hidden md:flex items-center h-12 gap-4">
           <a
-            className={`${isDashboard ? 'text-white border-b-2 border-[#007acc]' : 'text-zinc-400 hover:text-zinc-200'} h-full flex items-center px-1 transition-colors`}
+            className={`${isDashboard ? 'text-white border-b-2 border-green-600' : 'text-zinc-400 hover:text-zinc-200'} h-full flex items-center px-1 transition-colors`}
             href="/"
           >
             Dasbor
@@ -36,7 +36,7 @@ export default function Header({ authEnabled }: { authEnabled?: boolean }) {
             href="https://github.com/yohanesokta"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] text-zinc-300 font-bold hover:text-[#007acc] transition-colors"
+            className="text-[10px] text-zinc-300 font-bold hover:text-green-500 transition-colors"
           >
             @yohanesoktanio
           </a>
@@ -62,7 +62,7 @@ export default function Header({ authEnabled }: { authEnabled?: boolean }) {
                   <p className="text-[10px] text-white font-bold leading-none">{session.user.name || session.user.email}</p>
                   <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">{(session.user as any).role}</p>
                 </div>
-                <button className="w-7 h-7 rounded-full overflow-hidden border border-[#007acc] bg-zinc-800 flex items-center justify-center text-[10px] text-white font-bold shadow-lg shadow-[#007acc]/10">
+                <button className="w-7 h-7 rounded-full overflow-hidden border border-green-600 bg-zinc-800 flex items-center justify-center text-[10px] text-white font-bold shadow-lg shadow-green-900/10">
                   {session.user.image ? (
                     <img src={session.user.image} alt={session.user.name || ""} className="w-full h-full object-cover" />
                   ) : (
@@ -88,7 +88,7 @@ export default function Header({ authEnabled }: { authEnabled?: boolean }) {
             ) : status !== "authenticated" ? (
               <Link 
                 href="/auth/login" 
-                className="bg-[#007acc] text-white px-4 py-1 rounded text-[10px] font-bold uppercase tracking-wider hover:bg-[#005f9e] transition-all"
+                className="bg-green-600 text-white px-4 py-1 rounded text-[10px] font-bold uppercase tracking-wider hover:bg-green-700 transition-all"
               >
                 Masuk
               </Link>

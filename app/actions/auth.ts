@@ -145,3 +145,31 @@ export async function getPendingAdminRequests() {
     .where(eq(adminRequests.status, "pending"))
     .orderBy(adminRequests.createdAt);
 }
+
+export async function updateUserNim(nim: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Silakan login terlebih dahulu" };
+  if (!nim.trim()) return { error: "NIM tidak boleh kosong" };
+
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    if (user && user.nim) {
+      return { error: "NIM sudah terdaftar dan tidak dapat diubah." };
+    }
+
+    await db
+      .update(users)
+      .set({ nim })
+      .where(eq(users.id, session.user.id));
+
+    return { success: true };
+  } catch (error) {
+    console.error("Update NIM error:", error);
+    return { error: "Gagal memperbarui NIM" };
+  }
+}

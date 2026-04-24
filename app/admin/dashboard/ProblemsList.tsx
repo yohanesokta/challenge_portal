@@ -12,6 +12,7 @@ interface Problem {
     endTime: Date | null;
     duration: number | null;
     timingMode: 'scheduled' | 'manual';
+    shortLink?: string | null;
 }
 
 interface ProblemsListProps {
@@ -51,6 +52,7 @@ function getProblemStatus(p: Problem): { label: string; color: string } {
 
 export default function ProblemsList({ problems }: ProblemsListProps) {
     const [copiedId, setCopiedId] = useState<number | null>(null);
+    const [shareModal, setShareModal] = useState<{ id: number; url: string; shortLink?: string | null } | null>(null);
 
     const handleDelete = async (id: number) => {
         if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
@@ -58,9 +60,13 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
         }
     };
 
-    const handleShare = (id: number) => {
-        const url = `${window.location.origin}/problem/${id}`;
-        navigator.clipboard.writeText(url);
+    const handleShare = (problem: Problem) => {
+        const url = `${window.location.origin}/problem/${problem.id}`;
+        setShareModal({ id: problem.id, url, shortLink: problem.shortLink });
+    };
+
+    const copyToClipboard = (text: string, id: number) => {
+        navigator.clipboard.writeText(text);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
     };
@@ -133,18 +139,11 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                     })()}
 
                                     <button
-                                        onClick={() => handleShare(p.id)}
-                                        className={`p-2 transition-colors flex items-center gap-1 ${copiedId === p.id ? 'text-green-500' : 'text-zinc-400 hover:text-green-400'}`}
+                                        onClick={() => handleShare(p)}
+                                        className="p-2 transition-colors flex items-center gap-1 text-zinc-400 hover:text-green-400"
                                         title="Bagikan Tautan"
                                     >
-                                        {copiedId === p.id ? (
-                                            <>
-                                                <span className="material-symbols-outlined text-sm">check_circle</span>
-                                                <span className="text-[9px] font-bold uppercase tracking-widest animate-in fade-in slide-in-from-right-1">Link disalin!</span>
-                                            </>
-                                        ) : (
-                                            <span className="material-symbols-outlined text-sm">share</span>
-                                        )}
+                                        <span className="material-symbols-outlined text-sm">share</span>
                                     </button>
                                     <Link
                                         href={`/admin/problem/${p.id}/results`}
@@ -173,6 +172,68 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                     })
                 )}
             </div>
+
+            {/* Share Modal */}
+            {shareModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[#252526] border border-[#333333] rounded-2xl p-8 max-w-4xl w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-green-500">share</span>
+                                Bagikan Soal
+                            </h3>
+                            <button 
+                                onClick={() => setShareModal(null)}
+                                className="text-zinc-500 hover:text-white transition-colors"
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="space-y-8">
+                            {shareModal.shortLink ? (
+                                <div className="text-center space-y-10">
+                                    <div className="bg-[#1e1e1e] p-20 rounded-xl border border-green-600/30 group relative">
+                                        <div style={{fontSize : "72pt"}} className="font-black text-green-500 font-mono break-all">
+                                            {shareModal.shortLink.replace('https://', '')}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-amber-900/20 border border-amber-900/30 p-4 rounded-lg text-amber-500 text-sm flex items-center gap-3">
+                                    <span className="material-symbols-outlined">warning</span>
+                                    Tautan singkat tidak tersedia. Pastikan S_ID_AUTH_ID dan S_ID_AUTH_KEY sudah dikonfigurasi.
+                                </div>
+                            )}
+
+                            <div className="pt-6 border-t border-[#333333]">
+                                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-3">Tautan Lengkap</p>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={shareModal.url}
+                                        className="flex-1 bg-[#1e1e1e] border border-[#333333] text-zinc-400 p-3 rounded text-xs font-mono"
+                                    />
+                                    <button 
+                                        onClick={() => copyToClipboard(shareModal.url, -1)}
+                                        className="px-4 py-2 bg-[#333333] text-white rounded font-bold text-xs hover:bg-[#444444] transition-colors"
+                                    >
+                                        Salin
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={() => setShareModal(null)}
+                            className="w-full mt-8 py-3 text-zinc-500 font-bold hover:text-white transition-colors text-sm"
+                        >
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

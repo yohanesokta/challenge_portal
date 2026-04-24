@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
-import { getProblemById, updateProblem } from "@/app/actions/problem";
+import { getProblemById, updateProblem, regenerateShortLink } from "@/app/actions/problem";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -42,6 +42,8 @@ export default function EditProblem() {
   const [solutionType, setSolutionType] = useState<SolutionType>('bebas');
   const [functionName, setFunctionName] = useState("");
   const [className, setClassName] = useState("");
+  const [shortLink, setShortLink] = useState("");
+  const [isRegeneratingLink, setIsRegeneratingLink] = useState(false);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +65,7 @@ export default function EditProblem() {
         setSolutionType((problem.solutionType as SolutionType) || 'bebas');
         setFunctionName(problem.functionName || "");
         setClassName(problem.className || "");
+        setShortLink(problem.shortLink || "");
 
         // Map existing test cases (support both new testScript and legacy formats)
         setTestCases(problem.testCases.map((tc: any) => ({
@@ -92,6 +95,24 @@ export default function EditProblem() {
     setTestCases(testCases.filter((_, i) => i !== index));
   };
 
+  const handleRegenerateLink = async () => {
+    if (!confirm("Buat ulang tautan singkat? Tautan lama mungkin tidak akan berfungsi lagi.")) return;
+    
+    setIsRegeneratingLink(true);
+    try {
+      const res = await regenerateShortLink(parseInt(id));
+      if (res.success && res.shortLink) {
+        setShortLink(res.shortLink);
+      } else {
+        alert("Gagal membuat ulang tautan: " + res.error);
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan jaringan.");
+    } finally {
+      setIsRegeneratingLink(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -110,6 +131,7 @@ export default function EditProblem() {
         solutionType,
         functionName: functionName || null,
         className: className || null,
+        shortLink: shortLink || null,
         testCases,
       });
       if (res.success) {
@@ -134,7 +156,7 @@ export default function EditProblem() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Edit Soal</h1>
-            <Link href="/admin/dashboard" className="text-[#007acc] hover:underline">&larr; Kembali ke Dasbor</Link>
+            <Link href="/admin/dashboard" className="text-green-500 hover:underline">&larr; Kembali ke Dasbor</Link>
           </div>
         </div>
 
@@ -149,7 +171,7 @@ export default function EditProblem() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
+                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-green-600"
                 placeholder="Contoh: Manipulasi Larik (Array)"
               />
             </div>
@@ -181,7 +203,7 @@ export default function EditProblem() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={8}
-                  className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-4 focus:outline-none focus:border-[#007acc] font-mono text-sm shadow-inner"
+                  className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-4 focus:outline-none focus:border-green-600 font-mono text-sm shadow-inner"
                   placeholder="Gunakan Markdown untuk deskripsi soal Anda..."
                 />
               ) : (
@@ -212,7 +234,7 @@ export default function EditProblem() {
                   type="button"
                   onClick={() => setSolutionType(opt.id)}
                   className={`p-4 rounded-lg border text-left transition-all ${solutionType === opt.id
-                    ? opt.id === 'function' ? 'bg-[#007acc]/15 border-[#007acc] text-[#007acc]'
+                    ? opt.id === 'function' ? 'bg-green-600/15 border-green-600 text-green-500'
                     : opt.id === 'class' ? 'bg-emerald-900/20 border-emerald-600 text-emerald-400'
                     : 'bg-purple-900/20 border-purple-600 text-purple-400'
                     : 'bg-[#1e1e1e] border-[#333333] text-zinc-500 hover:border-zinc-500'}`}
@@ -231,7 +253,7 @@ export default function EditProblem() {
                   type="text"
                   value={functionName}
                   onChange={(e) => setFunctionName(e.target.value)}
-                  className="w-full bg-[#1e1e1e] border border-[#007acc]/40 text-white rounded p-3 focus:outline-none focus:border-[#007acc] font-mono"
+                  className="w-full bg-[#1e1e1e] border border-green-600/40 text-white rounded p-3 focus:outline-none focus:border-green-600 font-mono"
                   placeholder="Contoh: hitung_faktorial"
                 />
               </div>
@@ -259,7 +281,7 @@ export default function EditProblem() {
               <button
                 type="button"
                 onClick={() => setTimingMode('scheduled')}
-                className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${timingMode === 'scheduled' ? 'bg-[#007acc]/20 border-[#007acc] text-[#007acc]' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
+                className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${timingMode === 'scheduled' ? 'bg-green-600/20 border-green-600 text-green-500' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
               >
                 Terjadwal (Tanggal & Waktu)
               </button>
@@ -280,7 +302,7 @@ export default function EditProblem() {
                     type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
+                    className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-green-600"
                   />
                 </div>
                 <div>
@@ -289,7 +311,7 @@ export default function EditProblem() {
                     type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
+                    className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-green-600"
                   />
                 </div>
                 <div>
@@ -298,7 +320,7 @@ export default function EditProblem() {
                     type="number"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
-                    className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-[#007acc]"
+                    className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-3 focus:outline-none focus:border-green-600"
                     placeholder="Contoh: 60"
                   />
                 </div>
@@ -326,14 +348,13 @@ export default function EditProblem() {
             )}
           </section>
 
-          {/* Visibilitas */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Visibilitas</h2>
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setIsPublic(true)}
-                className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${isPublic ? 'bg-[#007acc]/20 border-[#007acc] text-[#007acc]' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
+                className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${isPublic ? 'bg-green-600/20 border-green-600 text-green-500' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
               >
                 Publik (Muncul di Beranda)
               </button>
@@ -347,6 +368,33 @@ export default function EditProblem() {
             </div>
           </section>
 
+          {/* Tautan Singkat */}
+          <section className="space-y-6">
+            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Tautan Singkat</h2>
+            <div className="bg-[#1e1e1e] border border-[#333333] rounded-lg p-6">
+              <label className="block text-zinc-400 text-xs font-bold uppercase mb-2">Short Link (s.id)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={shortLink}
+                  className="flex-1 bg-[#252526] border border-[#333333] text-zinc-400 rounded p-3 text-sm font-mono"
+                  placeholder="Belum ada tautan singkat"
+                />
+                <button
+                  type="button"
+                  onClick={handleRegenerateLink}
+                  disabled={isRegeneratingLink}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">{isRegeneratingLink ? 'sync' : 'refresh'}</span>
+                  {isRegeneratingLink ? 'Memproses...' : 'Buat Ulang'}
+                </button>
+              </div>
+              <p className="mt-3 text-[10px] text-zinc-500 italic">Tautan singkat digunakan untuk memudahkan mahasiswa mengakses soal saat diproyeksikan.</p>
+            </div>
+          </section>
+
           {/* Kasus Pengujian */}
           <section className="space-y-6">
             <div className="flex justify-between items-center border-b border-[#333333] pb-2">
@@ -357,7 +405,7 @@ export default function EditProblem() {
               <button
                 type="button"
                 onClick={handleAddTestCase}
-                className="bg-[#007acc] hover:bg-[#005f9e] text-white text-xs font-bold px-4 py-2 rounded transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded transition-colors"
               >
                 + Tambah Kasus Pengujian
               </button>
@@ -383,7 +431,7 @@ export default function EditProblem() {
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-zinc-500 text-[10px] font-bold uppercase">Skrip Pengujian (Python)</label>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        solutionType === 'function' ? 'bg-[#007acc]/20 text-[#007acc]'
+                        solutionType === 'function' ? 'bg-green-600/20 text-green-500'
                         : solutionType === 'class' ? 'bg-emerald-900/20 text-emerald-400'
                         : 'bg-purple-900/20 text-purple-400'
                       }`}>
@@ -423,7 +471,7 @@ export default function EditProblem() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-[#007acc] text-white px-10 py-3 rounded-lg font-bold hover:bg-[#005f9e] transition-all disabled:opacity-50 shadow-lg shadow-[#007acc]/20"
+              className="bg-green-600 text-white px-10 py-3 rounded-lg font-bold hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-900/20"
             >
               {isSubmitting ? 'Sedang Menyimpan...' : 'Simpan Perubahan'}
             </button>

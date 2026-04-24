@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { submitCode, runTests, runCode, stopCode, autoSubmitOnExpire, getExecutionStatus, sendStdin } from "@/app/actions/submission";
 import { getProblemStatus } from "@/app/actions/problem";
+import { updateUserNim } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 import Timer from "../../components/Timer";
 import Editor from '@monaco-editor/react';
@@ -139,8 +140,8 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
   const [code, setCode] = useState(() => getStarterCode(solutionType, functionName, className));
   const [nim, setNim] = useState(userNim || "");
-  const [tempNim, setTempNim] = useState("");
-  const [isNimLocked, setIsNimLocked] = useState(!userNim);
+  const [tempNim, setTempNim] = useState(userNim || "");
+  const [isNimLocked, setIsNimLocked] = useState(true);
   const [stdin, setStdin] = useState("");
 
 
@@ -225,11 +226,26 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     return () => clearInterval(interval);
   }, [timingMode, phase, currentStartTime, endTime, duration]);
 
-  const handleStartChallenge = () => {
+  const handleStartChallenge = async () => {
     if (!tempNim.trim()) {
       alert("Silakan masukkan Nomor Induk Mahasiswa (NIM) Anda.");
       return;
     }
+
+    // If user has no NIM in DB, update it now
+    if (authEnabled && !userNim) {
+      try {
+        const res = await updateUserNim(tempNim);
+        if (res.error) {
+          alert(res.error);
+          return;
+        }
+      } catch (err) {
+        alert("Gagal menyimpan NIM ke profil.");
+        return;
+      }
+    }
+
     setNim(tempNim);
     setIsNimLocked(false);
   };
@@ -463,26 +479,36 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
         <div className="absolute inset-0 bg-[#1e1e1e]/95 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
           <div className="bg-[#252526] border border-[#333333] rounded-xl p-8 max-w-md w-full shadow-2xl text-center">
             <h2 className="text-2xl font-bold text-white mb-2">Siap untuk Memulai?</h2>
-            <p className="text-zinc-400 mb-8 text-sm">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk membuka ruang kerja dan mulai mengerjakan soal.</p>
-
-            <div className="mb-6 text-left">
-              <label className="block text-zinc-500 text-xs font-bold uppercase mb-2">NIM Mahasiswa</label>
-              <input
-                type="text"
-                value={tempNim}
-                onChange={(e) => setTempNim(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleStartChallenge()}
-                autoFocus
-                placeholder="Contoh: 2501928392"
-                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded-lg p-4 focus:outline-none focus:border-[#007acc] font-mono text-lg"
-              />
-            </div>
+            
+            {userNim ? (
+              <div className="mb-8">
+                <p className="text-zinc-400 mb-6 text-sm leading-relaxed">Selamat datang kembali! Anda terdaftar dengan NIM di bawah ini. Klik tombol untuk mulai mengerjakan.</p>
+                <div className="bg-[#1e1e1e] border border-[#333333] rounded-lg p-4 mb-2">
+                  <span className="block text-zinc-500 text-[10px] font-bold uppercase mb-1 tracking-widest">NIM Terdaftar</span>
+                  <span className="text-white font-mono text-xl">{userNim}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-8 text-left">
+                <p className="text-zinc-400 mb-6 text-sm text-center">Silakan masukkan Nomor Induk Mahasiswa (NIM) Anda untuk membuka ruang kerja dan mulai mengerjakan soal.</p>
+                <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2 tracking-widest">NIM Mahasiswa</label>
+                <input
+                  type="text"
+                  value={tempNim}
+                  onChange={(e) => setTempNim(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleStartChallenge()}
+                  autoFocus
+                  placeholder="Contoh: 2501928392"
+                  className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded-lg p-4 focus:outline-none focus:border-green-600 font-mono text-lg"
+                />
+              </div>
+            )}
 
             <button
               onClick={handleStartChallenge}
-              className="w-full bg-[#007acc] text-white py-4 rounded-lg font-bold text-lg hover:bg-[#005f9e] transition-all shadow-lg hover:shadow-[#007acc]/20"
+              className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-green-900/20"
             >
-              Mulai Pengerjaan
+              {userNim ? 'Kerjakan Sekarang' : 'Mulai Pengerjaan'}
             </button>
             <p className="mt-4 text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
               NIM tidak dapat diubah setelah sesi dimulai.
@@ -669,19 +695,19 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
             <div className="flex">
               <button
                 onClick={() => setActiveTab('tests')}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'tests' ? 'text-[#007acc] border-b-2 border-[#007acc]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'tests' ? 'text-green-500 border-b-2 border-green-600' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 Kasus Pengujian {testResults.length > 0 && `(${testResults.filter(r => r.passed).length}/${testResults.length})`}
               </button>
               <button
                 onClick={() => setActiveTab('console')}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'console' ? 'text-[#007acc] border-b-2 border-[#007acc]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'console' ? 'text-green-500 border-b-2 border-green-600' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
-                Konsol {isExecuting && <span className="inline-block w-2 h-2 bg-[#007acc] rounded-full ml-1 animate-pulse"></span>}
+                Konsol {isExecuting && <span className="inline-block w-2 h-2 bg-green-500 rounded-full ml-1 animate-pulse"></span>}
               </button>
               <button
                 onClick={() => setActiveTab('input')}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'input' ? 'text-[#007acc] border-b-2 border-[#007acc]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'input' ? 'text-green-500 border-b-2 border-green-600' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 Masukan (Stdin)
               </button>
@@ -877,7 +903,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                 <textarea
                   value={stdin}
                   onChange={(e) => setStdin(e.target.value)}
-                  className="flex-1 bg-[#1e1e1e] border border-[#333333] text-zinc-300 p-4 font-mono text-sm focus:outline-none focus:border-[#007acc] rounded resize-none"
+                  className="flex-1 bg-[#1e1e1e] border border-[#333333] text-zinc-300 p-4 font-mono text-sm focus:outline-none focus:border-green-600 rounded resize-none"
                   placeholder="Ketikkan data input di sini. Setiap input() akan membaca satu baris dari sini..."
                 />
                 <p className="mt-2 text-[10px] text-zinc-600 italic">Input ini akan dikirimkan ke program saat Anda mengeklik tombol "Jalankan".</p>
@@ -889,10 +915,10 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
       {showPrompt && (
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#252526] border border-[#007acc]/50 rounded-xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+          <div className="bg-[#252526] border border-green-600/50 rounded-xl w-full max-w-md shadow-2xl p-6 animate-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-[#007acc]/20 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#007acc]">terminal</span>
+              <div className="w-10 h-10 bg-green-600/20 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-green-500">terminal</span>
               </div>
               <div>
                 <h3 className="text-white font-bold">Input Diperlukan</h3>
@@ -919,7 +945,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                 value={interactiveInput}
                 onChange={(e) => setInteractiveInput(e.target.value)}
                 placeholder="Ketik jawaban di sini..."
-                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded-lg p-4 focus:outline-none focus:border-[#007acc] font-mono mb-4 shadow-inner"
+                className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded-lg p-4 focus:outline-none focus:border-green-600 font-mono mb-4 shadow-inner"
               />
               <div className="flex gap-3">
                 <button
@@ -931,7 +957,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-[#007acc] text-white py-3 rounded-lg font-bold hover:bg-[#005f9e] transition-all shadow-lg shadow-[#007acc]/20"
+                  className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-900/20"
                 >
                   Kirim
                 </button>
@@ -993,7 +1019,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
               <button
                 onClick={() => { setReviewModal(null); router.push('/'); }}
-                className="bg-[#007acc] hover:bg-[#005f9e] text-white px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">home</span>
                 Selesai
