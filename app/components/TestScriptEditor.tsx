@@ -308,6 +308,7 @@ function buildCompletionItems(
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROVIDER_ID = 'test-script-python-provider';
+let isProviderRegistered = false;
 
 export default function TestScriptEditor({
   value,
@@ -325,26 +326,29 @@ export default function TestScriptEditor({
 
   const handleEditorMount: OnMount = (editor, monaco) => {
     // Register custom completion provider for python (once; Monaco dedupes by language)
-    try {
-      monaco.languages.registerCompletionItemProvider('python', {
-        triggerCharacters: ['.', '(', ' ', '\n', 'a', 's', 'e', 'r', 't', 'p', 'n', 'i'],
-        provideCompletionItems(model: any, position: any) {
-          const word = model.getWordUntilPosition(position);
-          const range: Monaco.IRange = {
-            startLineNumber: position.lineNumber,
-            endLineNumber: position.lineNumber,
-            startColumn: word.startColumn,
-            endColumn: word.endColumn,
-          };
+    if (!isProviderRegistered) {
+      try {
+        monaco.languages.registerCompletionItemProvider('python', {
+          triggerCharacters: ['.', '(', ' ', '\n', 'a', 's', 'e', 'r', 't', 'p', 'n', 'i'],
+          provideCompletionItems(model: any, position: any) {
+            const word = model.getWordUntilPosition(position);
+            const range: Monaco.IRange = {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn: word.startColumn,
+              endColumn: word.endColumn,
+            };
 
-          const { functionName: fn, className: cls, solutionType: st } = ctxRef.current;
-          return {
-            suggestions: buildCompletionItems(monaco, range, fn, cls, st),
-          };
-        },
-      });
-    } catch {
-      // Provider may already be registered on hot-reload — ignore
+            const { functionName: fn, className: cls, solutionType: st } = ctxRef.current;
+            return {
+              suggestions: buildCompletionItems(monaco, range, fn, cls, st),
+            };
+          },
+        });
+        isProviderRegistered = true;
+      } catch {
+        // Provider may already be registered on hot-reload — ignore
+      }
     }
 
     // Nice defaults for this editor instance

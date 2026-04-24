@@ -57,12 +57,12 @@ export default async function Home() {
                       <div className="text-zinc-500 text-xs flex items-center gap-1">
                         P{problem.id}
                       </div>
-                      <Link
+                      <a
                         href={`/problem/${problem.id}`}
                         className="bg-[#007acc] text-white px-4 py-1.5 rounded text-sm font-semibold hover:opacity-90 active:scale-95 transition-all text-center"
                       >
                         Selesaikan
-                      </Link>
+                      </a>
                     </div>
                   </div>
                 ))

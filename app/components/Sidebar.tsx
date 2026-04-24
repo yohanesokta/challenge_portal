@@ -16,17 +16,17 @@ export default function Sidebar({ className }: { className?: string }) {
       </div>
       
       <nav className="flex-1 py-2 overflow-y-auto custom-scrollbar">
-        <Link className="bg-[#2d2d2d] text-white border-l-2 border-[#007acc] flex items-center px-4 py-3 gap-3 transition-colors duration-200" href="/">
+        <a className="bg-[#2d2d2d] text-white border-l-2 border-[#007acc] flex items-center px-4 py-3 gap-3 transition-colors duration-200" href="/">
           <span className="material-symbols-outlined text-[#007acc]">grid_view</span>
           <span className="font-label-caps text-label-caps uppercase">Explorer</span>
-        </Link>
+        </a>
       </nav>
       
       <div className="mt-auto border-t border-[#333333] py-2">
-        <Link className="text-zinc-500 flex items-center px-4 py-3 gap-3 hover:bg-[#2a2d2e] hover:text-zinc-200 transition-colors duration-200" href="/admin">
+        <a className="text-zinc-500 flex items-center px-4 py-3 gap-3 hover:bg-[#2a2d2e] hover:text-zinc-200 transition-colors duration-200" href="/admin">
           <span className="material-symbols-outlined">settings</span>
           <span className="font-label-caps text-label-caps uppercase">Admin Setup</span>
-        </Link>
+        </a>
       </div>
     </aside>
   );

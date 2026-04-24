@@ -12,16 +12,16 @@ export default function Header() {
       <div className="flex items-center gap-6">
         <span className="text-lg font-bold text-white tracking-tighter">CodeLab JAI</span>
         <nav className="hidden md:flex items-center h-12 gap-4">
-          <Link
+          <a
             className={`${isDashboard ? 'text-white border-b-2 border-[#007acc]' : 'text-zinc-400 hover:text-zinc-200'} h-full flex items-center px-1 transition-colors`}
             href="/"
           >
             Dasbor
-          </Link>
+          </a>
           {isDashboard && (
-            <Link className="text-zinc-400 hover:text-zinc-200 transition-colors h-full flex items-center px-1" href="/admin">
+            <a className="text-zinc-400 hover:text-zinc-200 transition-colors h-full flex items-center px-1" href="/admin">
               Panel Admin
-            </Link>
+            </a>
           )}
         </nav>
       </div>

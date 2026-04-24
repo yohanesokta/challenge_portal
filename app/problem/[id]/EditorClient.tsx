@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import Timer from "../../components/Timer";
 import Editor from '@monaco-editor/react';
 
+// Singleton instance to prevent multiple workers & memory leaks
+let pyrightProvider: any = null;
+let pyrightPromise: Promise<any> | null = null;
+
 type ProblemPhase = 'not_started' | 'in_progress' | 'ended';
 
 interface EditorClientProps {
@@ -155,6 +159,16 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null);
 
   const consoleEndRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pyrightProvider && editorRef.current) {
+        console.log("Stopping Pyright diagnostics for instance...");
+        pyrightProvider.stopDiagnostics();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -582,32 +596,41 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
             value={code}
             onChange={(value) => setCode(value || "")}
             onMount={async (editor, monaco) => {
-              // Initialize Real Python IntelliSense using Pyright LSP
-              console.log("Starting Pyright LSP initialization...");
-              try {
-                const { MonacoPyrightProvider } = require('monaco-pyright-lsp');
-                
-                // Fetch the typeshed fallback zip as ArrayBuffer
-                console.log("Fetching typeshed assets...");
-                const response = await fetch('/typeshed-fallback.zip');
-                const typeshedData = await response.arrayBuffer();
-                
-                // Pass the worker URL directly as a string
-                const workerUrl = new URL('/pyright.worker.js', window.location.origin).toString();
-                
-                const provider = new MonacoPyrightProvider(workerUrl, {
-                  typeshed: typeshedData
-                });
-                
-                console.log("Provider instanced, calling init...");
-                await provider.init(monaco);
-                
-                console.log("Provider initialized, setting up diagnostics...");
+              editorRef.current = editor;
+              // Initialize Real Python IntelliSense using Pyright LSP (Singleton Pattern)
+              if (!pyrightPromise) {
+                pyrightPromise = (async () => {
+                  console.log("Starting Pyright LSP initialization...");
+                  try {
+                    const { MonacoPyrightProvider } = await import('monaco-pyright-lsp');
+                    
+                    // Fetch the typeshed fallback zip as ArrayBuffer
+                    console.log("Fetching typeshed assets...");
+                    const response = await fetch('/typeshed-fallback.zip');
+                    const typeshedData = await response.arrayBuffer();
+                    
+                    const workerUrl = new URL('/pyright.worker.js', window.location.origin).toString();
+                    const provider = new MonacoPyrightProvider(workerUrl, {
+                      typeshed: typeshedData
+                    });
+                    
+                    console.log("Provider instanced, calling init...");
+                    await provider.init(monaco);
+                    pyrightProvider = provider;
+                    console.log("Pyright LSP is now ONLINE");
+                    return provider;
+                  } catch (e) {
+                    console.error("Pyright LSP Error:", e);
+                    pyrightPromise = null;
+                    return null;
+                  }
+                })();
+              }
+
+              const provider = await pyrightPromise;
+              if (provider) {
+                console.log("Setting up diagnostics for current editor instance...");
                 await provider.setupDiagnostics(editor);
-                
-                console.log("Pyright LSP is now ONLINE");
-              } catch (e) {
-                console.error("Pyright LSP Error:", e);
               }
             }}
             options={{
