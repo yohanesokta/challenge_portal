@@ -400,7 +400,7 @@ export default function NewProblem() {
                       onChange={(e) => handleTestCaseChange(index, 'testScript', e.target.value)}
                       rows={8}
                       className="w-full bg-[#252526] border border-[#333333] text-green-300 rounded p-4 text-sm font-mono focus:outline-none focus:border-[#007acc]"
-                      placeholder="# Tulis skrip pengujian Python di sini..."
+                    placeholder={`# Skrip pengujian Python\n# Tip: tulis assert di SATU baris\n\nassert ${solutionType === 'function' ? (functionName || 'fungsi_anda') + '()' : solutionType === 'class' ? (className || 'Class') + '()' : 'program'} == nilai_yang_diharapkan\nprint("Test lulus!")`}
                       spellCheck={false}
                     />
                   </div>

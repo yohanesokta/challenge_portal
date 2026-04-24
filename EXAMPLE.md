@@ -29,6 +29,49 @@ Dua mode:
 
 ---
 
+## ⚠️ Sintaks `assert` yang Benar
+
+Ini adalah kesalahan paling umum saat menulis skrip pengujian.
+
+### ❌ SALAH — Trailing comma tanpa pesan di baris berikutnya
+```python
+# JANGAN lakukan ini!
+assert bubble_sort([3,1,2]) == [1,2,3],
+                                       # ^ SyntaxError! koma di akhir baris tanpa pesan
+```
+
+### ✅ BENAR — Satu baris penuh
+```python
+assert bubble_sort([3,1,2]) == [1,2,3]
+assert bubble_sort([3,1,2]) == [1,2,3], "Harus menghasilkan [1,2,3]"
+```
+
+### ✅ BENAR — Multi-baris dengan tanda kurung
+```python
+# Jika ekspresi panjang, gunakan kurung di sekitar ekspresi saja
+assert (bubble_sort([3,1,2]) == [1,2,3]), (
+    "Input [3,1,2] harus menghasilkan [1,2,3]"
+)
+```
+
+### ❌ SALAH — Tuple dalam assert (selalu True!)
+```python
+# JANGAN lakukan ini! Ini selalu True karena tuple non-kosong = True
+assert (bubble_sort([3,1,2]) == [1,2,3], "pesan")
+#       ^^ kurung membungkus KEDUANYA → membuat tuple, selalu lulus!
+```
+
+### Tips: Test tanpa pesan lebih aman untuk pemula
+```python
+# Format paling sederhana — tidak ada risiko syntax error dari koma
+assert bubble_sort([3,1,2]) == [1,2,3]
+assert bubble_sort([]) == []
+assert bubble_sort([5]) == [5]
+print("Semua test lulus!")
+```
+
+---
+
 ## Contoh: Tipe `function`
 
 ### Konfigurasi Soal

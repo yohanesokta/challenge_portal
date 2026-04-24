@@ -88,6 +88,56 @@ async function runPythonCodeInternal(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Error formatter
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Checks whether a Python stderr output contains a SyntaxError that originates
+ * from the test script section (after '# --- Test Script ---') vs user code.
+ * Returns a friendly Indonesian message if detected.
+ */
+function formatEvaluatorError(
+  stderr: string,
+  userCodeLines: number,
+  testScriptStartLine: number
+): string {
+  if (!stderr) return '';
+
+  // Detect SyntaxError
+  if (stderr.includes('SyntaxError')) {
+    // Try to extract the offending line number
+    const lineMatch = stderr.match(/line (\d+)/);
+    const errorLine = lineMatch ? parseInt(lineMatch[1]) : null;
+
+    if (errorLine !== null && errorLine > testScriptStartLine) {
+      const scriptLine = errorLine - testScriptStartLine;
+      return (
+        `⚠️ Kesalahan Sintaks pada Skrip Pengujian (baris ${scriptLine}):\n` +
+        `Periksa skrip pengujian soal. Kemungkinan penyebab:\n` +
+        `  • assert dengan koma di akhir baris tanpa pesan: gunakan assert expr, "pesan" pada satu baris\n` +
+        `  • Tanda kurung yang tidak tertutup\n\n` +
+        `Detail error Python:\n${stderr}`
+      );
+    } else if (errorLine !== null && errorLine <= userCodeLines) {
+      return (
+        `⚠️ Kesalahan Sintaks pada Kode Anda (baris ${errorLine}):\n\n${stderr}`
+      );
+    }
+
+    return `⚠️ Kesalahan Sintaks:\n${stderr}`;
+  }
+
+  return stderr;
+}
+
+/**
+ * Count lines in a string (used to locate test script start)
+ */
+function countLines(str: string): number {
+  return str.split('\n').length;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Modular Evaluators
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -101,12 +151,15 @@ async function evaluatorFunction(
   userCode: string,
   testScript: string
 ): Promise<{ passed: boolean; actualOutput: string; error: string }> {
-  const combined = `${userCode}\n\n# --- Test Script ---\n${testScript}`;
+  const separator = '\n\n# --- Test Script ---\n';
+  const combined = `${userCode}${separator}${testScript}`;
+  const userLines = countLines(userCode);
+  const testScriptStartLine = userLines + 2; // +2 for the two blank lines before separator comment
   const result = await runPythonCodeInternal(combined);
   return {
     passed: result.exitCode === 0,
     actualOutput: result.stdout,
-    error: result.stderr,
+    error: formatEvaluatorError(result.stderr, userLines, testScriptStartLine),
   };
 }
 
@@ -119,12 +172,15 @@ async function evaluatorClass(
   userCode: string,
   testScript: string
 ): Promise<{ passed: boolean; actualOutput: string; error: string }> {
-  const combined = `${userCode}\n\n# --- Test Script ---\n${testScript}`;
+  const separator = '\n\n# --- Test Script ---\n';
+  const combined = `${userCode}${separator}${testScript}`;
+  const userLines = countLines(userCode);
+  const testScriptStartLine = userLines + 2;
   const result = await runPythonCodeInternal(combined);
   return {
     passed: result.exitCode === 0,
     actualOutput: result.stdout,
-    error: result.stderr,
+    error: formatEvaluatorError(result.stderr, userLines, testScriptStartLine),
   };
 }
 
