@@ -4,9 +4,8 @@ services:
   db:
     image: mariadb:10.11
     restart: always
-    environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_DATABASE: coding_platform
+    env_file:
+      - .env
     volumes:
       - mariadb_data:/var/lib/mysql
 
@@ -16,8 +15,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - '3000:3000'
-    environment:
-      - DATABASE_URL=mysql://root:root@db:3306/coding_platform
+    env_file:
+      - .env
     depends_on:
       - db
     
