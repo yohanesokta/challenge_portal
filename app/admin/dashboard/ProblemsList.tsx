@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { deleteProblem, startProblemManual } from "@/app/actions/problem";
+import { useState } from "react";
 
 interface Problem {
     id: number;
@@ -49,11 +50,19 @@ function getProblemStatus(p: Problem): { label: string; color: string } {
 }
 
 export default function ProblemsList({ problems }: ProblemsListProps) {
+    const [copiedId, setCopiedId] = useState<number | null>(null);
+
     const handleDelete = async (id: number) => {
         if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
-            const { deleteProblem } = await import('@/app/actions/problem');
             await deleteProblem(id);
         }
+    };
+
+    const handleShare = (id: number) => {
+        const url = `${window.location.origin}/problem/${id}`;
+        navigator.clipboard.writeText(url);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     return (
@@ -125,6 +134,20 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                         );
                                     })()}
 
+                                    <button
+                                        onClick={() => handleShare(p.id)}
+                                        className={`p-2 transition-colors flex items-center gap-1 ${copiedId === p.id ? 'text-green-500' : 'text-zinc-400 hover:text-orange-400'}`}
+                                        title="Bagikan Tautan"
+                                    >
+                                        {copiedId === p.id ? (
+                                            <>
+                                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-widest animate-in fade-in slide-in-from-right-1">Link disalin!</span>
+                                            </>
+                                        ) : (
+                                            <span className="material-symbols-outlined text-sm">share</span>
+                                        )}
+                                    </button>
                                     <Link
                                         href={`/admin/problem/${p.id}/results`}
                                         className="p-2 text-zinc-400 hover:text-green-500 transition-colors"

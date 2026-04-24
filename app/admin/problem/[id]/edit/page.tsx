@@ -5,6 +5,7 @@ import { getProblemById, updateProblem } from "@/app/actions/problem";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import TestScriptEditor from "@/app/components/TestScriptEditor";
 
 type SolutionType = 'function' | 'class' | 'bebas';
 
@@ -389,14 +390,13 @@ export default function EditProblem() {
                         {solutionType === 'function' ? 'EvaluatorFunction' : solutionType === 'class' ? 'EvaluatorClass' : 'EvaluatorBebas'}
                       </span>
                     </div>
-                    <textarea
-                      required
+                    <TestScriptEditor
                       value={tc.testScript}
-                      onChange={(e) => handleTestCaseChange(index, 'testScript', e.target.value)}
-                      rows={8}
-                      className="w-full bg-[#252526] border border-[#333333] text-green-300 rounded p-4 text-sm font-mono focus:outline-none focus:border-[#007acc]"
-                    placeholder={`# Skrip pengujian Python\n# Tip: tulis assert di SATU baris\n\nassert ${solutionType === 'function' ? (functionName || 'fungsi_anda') + '()' : solutionType === 'class' ? (className || 'Class') + '()' : 'program'} == nilai_yang_diharapkan\nprint("Test lulus!")`}
-                      spellCheck={false}
+                      onChange={(v) => handleTestCaseChange(index, 'testScript', v)}
+                      height={280}
+                      solutionType={solutionType}
+                      functionName={functionName}
+                      className={className}
                     />
                   </div>
 
