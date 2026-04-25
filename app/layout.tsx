@@ -72,6 +72,7 @@ export default function RootLayout({
       className={`${inter.variable} ${spaceGrotesk.variable} dark antialiased`}
     >
       <head>
+        <meta name="google-site-verification" content="7KrI9NvgMVFbAi_bY9GNQQlN7er_05Lz9O1CTYyXOVE" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-full font-body-main text-on-surface custom-scrollbar overflow-x-hidden bg-[#1e1e1e]">
