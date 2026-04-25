@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mariadb:10.11
@@ -17,6 +15,8 @@ services:
       - '3000:3000'
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=mysql://root:${MARIADB_ROOT_PASSWORD:-root}@db:3306/${MARIADB_DATABASE:-coding_platform}
     depends_on:
       - db
       - shortlink
@@ -29,6 +29,8 @@ services:
       - '3001:3001'
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=mysql://root:${MARIADB_ROOT_PASSWORD:-root}@db:3306/${MARIADB_DATABASE:-coding_platform}
     depends_on:
       - db
     
