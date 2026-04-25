@@ -8,6 +8,7 @@ interface ReviewClientProps {
   problemId: string;
   nim?: string;
   storageKey?: string;
+  initialCode?: string;
   submissionStatus?: 'pass' | 'fail' | 'timeout';
   solutionType?: 'function' | 'class' | 'bebas';
   functionName?: string;
@@ -18,13 +19,14 @@ export default function ReviewClient({
   problemId,
   nim,
   storageKey,
+  initialCode,
   submissionStatus,
   solutionType,
   functionName,
   className,
 }: ReviewClientProps) {
-  const [code, setCode] = useState<string>('# Memuat kode mahasiswa...');
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [code, setCode] = useState<string>(initialCode || '# Memuat kode mahasiswa...');
+  const [isLoaded, setIsLoaded] = useState(!!initialCode);
   const [isRunningTests, setIsRunningTests] = useState(false);
   const [testResults, setTestResults] = useState<any[]>([]);
   const [allTestsPassed, setAllTestsPassed] = useState(false);
@@ -33,6 +35,8 @@ export default function ReviewClient({
   const [hasRunTests, setHasRunTests] = useState(false);
 
   useEffect(() => {
+    if (initialCode) return;
+
     // Load code from sessionStorage using the key
     if (storageKey) {
       try {

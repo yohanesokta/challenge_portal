@@ -327,6 +327,7 @@ export async function getUserHistory() {
   if (!session?.user?.id) return [];
 
   return await db.select({
+    id: submissions.id,
     problemId: problems.id,
     problemTitle: problems.title,
     status: submissions.status,

@@ -1,4 +1,6 @@
 import { getProblemById } from "@/app/actions/problem";
+import { getSubmissionById, getSubmissionByUserAndProblem } from "@/app/actions/submission";
+import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import Header from "../../../components/Header";
 import ReactMarkdown from "react-markdown";
@@ -18,14 +20,38 @@ export default async function ReviewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ nim?: string; key?: string; status?: string }>;
+  searchParams: Promise<{ nim?: string; key?: string; status?: string; sid?: string }>;
 }) {
   const { id } = await params;
-  const { nim, key, status } = await searchParams;
+  const { nim, key, status, sid } = await searchParams;
+  const session = await auth();
+  const user = session?.user as any;
 
   const problem = await getProblemById(id);
   if (!problem) {
     notFound();
+  }
+
+  let displayCode = undefined;
+  let displayStatus = status;
+  let displayNim = nim;
+
+  if (!key) {
+    if (sid) {
+      const submission = await getSubmissionById(parseInt(sid));
+      if (submission && (submission.userId === user?.id || user?.role === 'admin' || user?.role === 'superadmin')) {
+        displayCode = submission.code;
+        displayStatus = submission.status as string;
+        displayNim = submission.nim;
+      }
+    } else if (user?.id) {
+      const submission = await getSubmissionByUserAndProblem(id, user.id);
+      if (submission) {
+        displayCode = submission.code;
+        displayStatus = submission.status as string;
+        displayNim = submission.nim;
+      }
+    }
   }
 
   const solutionType = (problem.solutionType as string) || 'bebas';
@@ -118,9 +144,10 @@ export default async function ReviewPage({
             <div className="flex-1 bg-[#1e1e1e] flex flex-col h-full min-h-[500px]">
               <ReviewClient
                 problemId={problem.id}
-                nim={nim}
+                nim={displayNim}
                 storageKey={key}
-                submissionStatus={status as 'pass' | 'fail' | 'timeout' | undefined}
+                initialCode={displayCode}
+                submissionStatus={displayStatus as 'pass' | 'fail' | 'timeout' | undefined}
                 solutionType={solutionType as 'function' | 'class' | 'bebas'}
                 functionName={problem.functionName || undefined}
                 className={problem.className || undefined}

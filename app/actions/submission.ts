@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { submissions, problems } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getProblemById } from './problem';
 import { spawn, ChildProcess } from 'child_process';
@@ -427,4 +427,25 @@ export async function getSubmissions(problemId?: string) {
 
   const result = await query.orderBy(submissions.createdAt);
   return result;
+}
+
+export async function getSubmissionById(id: number) {
+  const result = await db.select()
+    .from(submissions)
+    .where(eq(submissions.id, id));
+  
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getSubmissionByUserAndProblem(problemId: string, userId: string) {
+  const result = await db.select()
+    .from(submissions)
+    .where(and(
+      eq(submissions.problemId, problemId),
+      eq(submissions.userId, userId)
+    ))
+    .orderBy(submissions.createdAt);
+  
+  // Return the latest submission
+  return result.length > 0 ? result[result.length - 1] : null;
 }

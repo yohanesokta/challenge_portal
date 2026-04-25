@@ -47,7 +47,7 @@ export default function Sidebar({ className, authEnabled }: { className?: string
               {history.map((item, idx) => (
                 <Link 
                   key={idx}
-                  href={`/problem/${item.problemId}`}
+                  href={`/problem/${item.problemId}/review?sid=${item.id}`}
                   className="flex flex-col p-2 hover:bg-[#2a2d2e] rounded transition-colors group"
                 >
                   <span className="text-xs text-zinc-300 truncate group-hover:text-white">{item.problemTitle}</span>
