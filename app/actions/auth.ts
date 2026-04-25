@@ -152,21 +152,12 @@ export async function updateUserNim(nim: string) {
   if (!nim.trim()) return { error: "NIM tidak boleh kosong" };
 
   try {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    if (user && user.nim) {
-      return { error: "NIM sudah terdaftar dan tidak dapat diubah." };
-    }
-
     await db
       .update(users)
       .set({ nim })
       .where(eq(users.id, session.user.id));
 
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Update NIM error:", error);

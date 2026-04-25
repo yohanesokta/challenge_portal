@@ -193,7 +193,6 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                         <div className="space-y-8">
                             {shareModal.shortLink ? (
                                 <div className="text-center space-y-4">
-                                    <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest">Custom Shortlink</p>
                                     <div className="bg-[#1e1e1e] p-10 rounded-xl border border-green-600/30 group relative">
                                         <div style={{fontSize : "42pt"}} className="font-black text-green-500 font-mono break-all leading-none">
                                             {shareModal.shortLink.replace('http://', '').replace('https://', '')}
