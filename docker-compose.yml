@@ -4,6 +4,8 @@ services:
     restart: always
     env_file:
       - .env
+    ports:
+      - '3306:3306'
     volumes:
       - mariadb_data:/var/lib/mysql
 
@@ -15,8 +17,6 @@ services:
       - '3000:3000'
     env_file:
       - .env
-    environment:
-      - DATABASE_URL=mysql://root:${MARIADB_ROOT_PASSWORD:-root}@db:3306/${MARIADB_DATABASE:-coding_platform}
     depends_on:
       - db
       - shortlink
@@ -29,8 +29,6 @@ services:
       - '3001:3001'
     env_file:
       - .env
-    environment:
-      - DATABASE_URL=mysql://root:${MARIADB_ROOT_PASSWORD:-root}@db:3306/${MARIADB_DATABASE:-coding_platform}
     depends_on:
       - db
     
