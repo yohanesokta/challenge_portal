@@ -5,7 +5,7 @@ import { runTests } from "@/app/actions/submission";
 import Editor from '@monaco-editor/react';
 
 interface ReviewClientProps {
-  problemId: number;
+  problemId: string;
   nim?: string;
   storageKey?: string;
   submissionStatus?: 'pass' | 'fail' | 'timeout';

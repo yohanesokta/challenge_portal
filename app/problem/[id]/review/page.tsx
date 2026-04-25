@@ -23,7 +23,7 @@ export default async function ReviewPage({
   const { id } = await params;
   const { nim, key, status } = await searchParams;
 
-  const problem = await getProblemById(parseInt(id));
+  const problem = await getProblemById(id);
   if (!problem) {
     notFound();
   }

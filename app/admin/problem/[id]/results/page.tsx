@@ -19,8 +19,8 @@ export default function ProblemResults() {
   useEffect(() => {
     async function fetchData() {
       const [problemData, submissionData] = await Promise.all([
-        getProblemById(parseInt(id)),
-        getSubmissions(parseInt(id))
+        getProblemById(id),
+        getSubmissions(id)
       ]);
       
       setProblem(problemData);

@@ -22,7 +22,8 @@ export default function AdminRequestsPage() {
       return;
     }
 
-    if (status === "authenticated" && (session?.user as any)?.role !== 'admin') {
+    const userRole = (session?.user as any)?.role;
+    if (status === "authenticated" && userRole !== 'admin' && userRole !== 'superadmin') {
       router.push("/admin");
     } else if (status === "unauthenticated") {
        router.push("/admin");
@@ -54,7 +55,10 @@ export default function AdminRequestsPage() {
     }
   };
 
-  if (status === "loading" || loading || (status === "authenticated" && (session?.user as any)?.role !== 'admin') || status === "unauthenticated") {
+  const userRole = (session?.user as any)?.role;
+  const isAuthorized = userRole === 'admin' || userRole === 'superadmin';
+
+  if (status === "loading" || loading || (status === "authenticated" && !isAuthorized) || status === "unauthenticated") {
     return (
       <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center">
          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>

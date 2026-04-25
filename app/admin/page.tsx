@@ -23,7 +23,7 @@ export default function AdminPage() {
       return;
     }
 
-    if (status === "authenticated" && (session?.user as any)?.role === 'admin') {
+    if (status === "authenticated" && ((session?.user as any)?.role === 'admin' || (session?.user as any)?.role === 'superadmin')) {
       router.push("/admin/dashboard");
     }
   }, [session, status, router, authEnabled]);
@@ -48,7 +48,7 @@ export default function AdminPage() {
     }
   };
 
-  if (status === "loading" || (status === "authenticated" && (session?.user as any)?.role === 'admin')) return (
+  if (status === "loading" || (status === "authenticated" && ((session?.user as any)?.role === 'admin' || (session?.user as any)?.role === 'superadmin'))) return (
     <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center">
        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
     </div>
@@ -84,7 +84,7 @@ export default function AdminPage() {
             <span className="material-symbols-outlined text-2xl">security</span>
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Permintaan Akses Admin</h1>
-          <p className="text-zinc-400 text-sm">Akun Anda saat ini memiliki akses sebagai <strong>Student</strong>. Ajukan permintaan untuk menjadi Administrator.</p>
+          <p className="text-zinc-400 text-sm">Akun Anda saat ini memiliki akses sebagai <strong>{String((session?.user as any)?.role || 'student').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong>. Ajukan permintaan untuk menjadi Administrator.</p>
         </div>
 
         {message && (

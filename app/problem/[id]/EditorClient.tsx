@@ -15,7 +15,7 @@ let pyrightPromise: Promise<any> | null = null;
 type ProblemPhase = 'not_started' | 'in_progress' | 'ended';
 
 interface EditorClientProps {
-  problemId: number;
+  problemId: string;
   endTime?: Date | null;
   duration?: number | null;
   timingMode: 'scheduled' | 'manual';
@@ -464,7 +464,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
             <h2 className="text-2xl font-bold text-white mb-3">Soal Telah Ditutup</h2>
             <p className="text-zinc-400 text-sm leading-relaxed">
               Pengerjaan soal ini telah berakhir pada <span className="text-zinc-200 font-semibold">{closedAt}</span>.
-              Anda tidak dapat lagi mengakses atau mengerjakan soal ini.
+              Anda tidak dapat lagi mengakses or mengerjakan soal ini.
             </p>
             <div className="mt-6 pt-6 border-t border-[#333333]">
               <p className="text-[10px] text-zinc-600 uppercase tracking-widest">Silakan hubungi tenaga pengajar untuk informasi lebih lanjut.</p>
@@ -1131,7 +1131,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
                       {/* Individual results */}
                       {reviewTestResults.map((result, idx) => (
-                        <div key={idx} className={`border rounded-lg overflow-hidden ${result.passed ? 'bg-green-900/10 border-green-900/40' : 'bg-red-900/10 border-red-900/40'}`}>
+                        <div key={idx} className={`border rounded-lg overflow-hidden ${result.passed ? 'bg-green-900/10 border-green-900/40' : 'bg-red-900/10 border-red-700/40'}`}>
                           <div className={`flex items-center gap-3 px-3 py-2 border-b ${result.passed ? 'border-green-900/30 bg-green-900/20' : 'border-red-900/30 bg-red-900/20'}`}>
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${result.passed ? 'bg-green-600' : 'bg-red-600'}`}>
                               <span className="material-symbols-outlined text-white" style={{ fontSize: '14px' }}>{result.passed ? 'check' : 'close'}</span>

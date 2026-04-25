@@ -308,7 +308,7 @@ export async function stopCode(executionId: string) {
 // runTests — routes to correct evaluator based on solutionType
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function runTests(data: { problemId: number; code: string }) {
+export async function runTests(data: { problemId: string; code: string }) {
   try {
     const problem = await getProblemById(data.problemId);
     if (!problem || !problem.testCases || problem.testCases.length === 0) {
@@ -356,7 +356,7 @@ export async function runTests(data: { problemId: number; code: string }) {
 // Submit
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function autoSubmitOnExpire(data: { nim: string; problemId: number; code: string; userId?: string }) {
+export async function autoSubmitOnExpire(data: { nim: string; problemId: string; code: string; userId?: string }) {
   try {
     await db.insert(submissions).values({
       nim: data.nim,
@@ -375,7 +375,7 @@ export async function autoSubmitOnExpire(data: { nim: string; problemId: number;
   }
 }
 
-export async function submitCode(data: { nim: string; problemId: number; code: string; userId?: string }) {
+export async function submitCode(data: { nim: string; problemId: string; code: string; userId?: string }) {
   try {
     const problem = await getProblemById(data.problemId);
     if (!problem) return { success: false, error: 'Soal tidak ditemukan' };
@@ -408,7 +408,7 @@ export async function submitCode(data: { nim: string; problemId: number; code: s
   }
 }
 
-export async function getSubmissions(problemId?: number) {
+export async function getSubmissions(problemId?: string) {
   let query = db.select({
     id: submissions.id,
     nim: submissions.nim,

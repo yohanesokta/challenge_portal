@@ -5,7 +5,7 @@ import { deleteProblem, startProblemManual } from "@/app/actions/problem";
 import { useState } from "react";
 
 interface Problem {
-    id: number;
+    id: string;
     title: string;
     isPublic: boolean;
     startTime: Date | null;
@@ -13,10 +13,13 @@ interface Problem {
     duration: number | null;
     timingMode: 'scheduled' | 'manual';
     shortLink?: string | null;
+    creatorName?: string | null;
+    creatorEmail?: string | null;
 }
 
 interface ProblemsListProps {
     problems: Problem[];
+    userRole?: string;
 }
 
 function getProblemStatus(p: Problem): { label: string; color: string } {
@@ -50,11 +53,11 @@ function getProblemStatus(p: Problem): { label: string; color: string } {
     return { label: 'Sedang Berjalan', color: 'bg-green-900/40 text-green-400 border-green-900/50' };
 }
 
-export default function ProblemsList({ problems }: ProblemsListProps) {
-    const [copiedId, setCopiedId] = useState<number | null>(null);
-    const [shareModal, setShareModal] = useState<{ id: number; url: string; shortLink?: string | null } | null>(null);
+export default function ProblemsList({ problems, userRole }: ProblemsListProps) {
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [shareModal, setShareModal] = useState<{ id: string; url: string; shortLink?: string | null } | null>(null);
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
             await deleteProblem(id);
         }
@@ -65,7 +68,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
         setShareModal({ id: problem.id, url, shortLink: problem.shortLink });
     };
 
-    const copyToClipboard = (text: string, id: number) => {
+    const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
@@ -82,18 +85,24 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                         const status = getProblemStatus(p);
                         return (
                             <div key={p.id} className="flex justify-between items-center p-4 bg-[#1e1e1e] border border-[#333333] rounded hover:border-zinc-500 transition-colors group">
-                                <div className="flex flex-col gap-1.5">
+                                <div className="flex flex-col gap-1.5 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <h3 className="text-white font-bold">{p.title}</h3>
+                                        <h3 className="text-white font-bold truncate">{p.title}</h3>
                                         {!p.isPublic && (
                                             <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700 font-bold uppercase tracking-wider">Privat</span>
                                         )}
                                         <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-wider ${status.color}`}>
                                             {status.label}
                                         </span>
+                                        {userRole === 'superadmin' && p.creatorName && (
+                                            <span className="text-[9px] bg-blue-900/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-900/30 font-bold uppercase tracking-wider flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[10px]">person</span>
+                                                {p.creatorName}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex gap-4 text-[10px] uppercase font-bold text-zinc-500 flex-wrap">
-                                        <span>ID: {p.id}</span>
+                                        <span className="font-mono">ID: {p.id.split('-')[0]}...</span>
                                         <span className={`px-1.5 py-0.5 rounded border text-[9px] ${p.timingMode === 'manual' ? 'bg-zinc-800 text-zinc-400 border-zinc-700' : 'bg-green-900/10 text-green-500 border-green-900/20'}`}>
                                             {p.timingMode === 'manual' ? '⏱ Mulai Manual' : '📅 Terjadwal'}
                                         </span>
@@ -225,7 +234,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                                         className="flex-1 bg-[#1e1e1e] border border-[#333333] text-zinc-400 p-3 rounded text-xs font-mono"
                                     />
                                     <button 
-                                        onClick={() => copyToClipboard(shareModal.url, -1)}
+                                        onClick={() => copyToClipboard(shareModal.url, "GLOBAL_FULL_URL")}
                                         className="px-4 py-2 bg-[#333333] text-white rounded font-bold text-xs hover:bg-[#444444] transition-colors"
                                     >
                                         Salin

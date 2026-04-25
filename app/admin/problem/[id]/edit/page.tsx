@@ -50,7 +50,8 @@ export default function EditProblem() {
 
   useEffect(() => {
     async function fetchData() {
-      const problem = await getProblemById(parseInt(id));
+      // Problem ID is now a string (UUID)
+      const problem = await getProblemById(id);
       
       if (problem) {
         problemRef.current = problem;
@@ -66,10 +67,10 @@ export default function EditProblem() {
         setClassName(problem.className || "");
         setShortLink(problem.shortLink || "");
 
-        // Map existing test cases (support both new testScript and legacy formats)
+        // Map existing test cases
         setTestCases(problem.testCases.map((tc: any) => ({
-          testScript: tc.testScript || tc.test_script || '',
-          expectedOutput: tc.expectedOutput || tc.expected_output || '',
+          testScript: tc.testScript || '',
+          expectedOutput: tc.expectedOutput || '',
         })));
       }
       setIsLoading(false);
@@ -99,7 +100,7 @@ export default function EditProblem() {
     setIsSubmitting(true);
     
     try {
-      const res = await updateProblem(parseInt(id), {
+      const res = await updateProblem(id, {
         title,
         description,
         startTime: timingMode === 'scheduled'

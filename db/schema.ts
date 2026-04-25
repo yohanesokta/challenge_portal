@@ -1,7 +1,19 @@
 import { mysqlTable, serial, varchar, text, timestamp, int, boolean } from 'drizzle-orm/mysql-core';
 
+export const users = mysqlTable('users', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  name: varchar('name', { length: 255 }),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  emailVerified: timestamp('email_verified', { mode: 'date' }),
+  image: varchar('image', { length: 255 }),
+  password: varchar('password', { length: 255 }),
+  nim: varchar('nim', { length: 50 }),
+  role: varchar('role', { length: 20 }).default('student').notNull(), // 'student', 'admin', 'superadmin', 'pending_admin'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const problems = mysqlTable('problems', {
-  id: int('id').autoincrement().primaryKey(),
+  id: varchar('id', { length: 36 }).primaryKey(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description').notNull(),
   startTime: timestamp('start_time'),
@@ -14,33 +26,33 @@ export const problems = mysqlTable('problems', {
   functionName: varchar('function_name', { length: 100 }),
   className: varchar('class_name', { length: 100 }),
   shortLink: varchar('short_link', { length: 255 }),
+  createdBy: varchar('created_by', { length: 255 })
+    .references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Table penghubung kepemilikan soal
+export const problemOwnership = mysqlTable('problem_ownership', {
+  id: int('id').autoincrement().primaryKey(),
+  problemId: varchar('problem_id', { length: 36 })
+    .notNull()
+    .references(() => problems.id, { onDelete: 'cascade' }),
+  userId: varchar('user_id', { length: 255 })
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 20 }).default('owner').notNull(), // 'owner', 'collaborator'
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const testCases = mysqlTable('test_cases', {
   id: int('id').autoincrement().primaryKey(),
-  problemId: int('problem_id')
+  problemId: varchar('problem_id', { length: 36 })
     .notNull()
     .references(() => problems.id, { onDelete: 'cascade' }),
-  // Unified Python script test case (all types)
   testScript: text('test_script').notNull(),
-  // For 'bebas' type: expected stdout to compare against
   expectedOutput: text('expected_output'),
-  // Legacy columns (kept for backward compat, nullable)
   type: varchar('type', { length: 20 }).default('standard'),
   input: text('input'),
-});
-
-export const users = mysqlTable('users', {
-  id: varchar('id', { length: 255 }).primaryKey(),
-  name: varchar('name', { length: 255 }),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  emailVerified: timestamp('email_verified', { mode: 'date' }),
-  image: varchar('image', { length: 255 }),
-  password: varchar('password', { length: 255 }),
-  nim: varchar('nim', { length: 50 }),
-  role: varchar('role', { length: 20 }).default('student').notNull(), // 'student', 'admin', 'pending_admin'
-  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const accounts = mysqlTable('accounts', {
@@ -77,8 +89,8 @@ export const adminRequests = mysqlTable('admin_requests', {
 export const submissions = mysqlTable('submissions', {
   id: int('id').autoincrement().primaryKey(),
   nim: varchar('nim', { length: 50 }).notNull(),
-  userId: varchar('user_id', { length: 255 }), // Nullable for guest users
-  problemId: int('problem_id')
+  userId: varchar('user_id', { length: 255 }),
+  problemId: varchar('problem_id', { length: 36 })
     .notNull()
     .references(() => problems.id, { onDelete: 'cascade' }),
   code: text('code').notNull(),
@@ -87,8 +99,7 @@ export const submissions = mysqlTable('submissions', {
 });
 
 export const links = mysqlTable('links', {
-  id: varchar('id', { length: 20 }).primaryKey(), // The short path (slug)
+  id: varchar('id', { length: 20 }).primaryKey(),
   longUrl: text('long_url').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
-

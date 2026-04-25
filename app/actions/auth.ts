@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { users, adminRequests } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
@@ -90,7 +90,8 @@ export async function requestAdminRole(reason: string) {
 
 export async function handleAdminRequest(requestId: number, action: 'approve' | 'reject') {
   const session = await auth();
-  if ((session?.user as any)?.role !== 'admin') {
+  const user = session?.user as any;
+  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
     return { error: "Anda tidak memiliki izin" };
   }
 
@@ -129,7 +130,8 @@ export async function handleAdminRequest(requestId: number, action: 'approve' | 
 
 export async function getPendingAdminRequests() {
   const session = await auth();
-  if ((session?.user as any)?.role !== 'admin') return [];
+  const user = session?.user as any;
+  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) return [];
 
   return db
     .select({
@@ -162,5 +164,44 @@ export async function updateUserNim(nim: string) {
   } catch (error) {
     console.error("Update NIM error:", error);
     return { error: "Gagal memperbarui NIM" };
+  }
+}
+
+export async function getAllAdmins() {
+  const session = await auth();
+  const user = session?.user as any;
+  if (!user || user.role !== 'superadmin') return [];
+
+  return await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+    .from(users)
+    .where(eq(users.role, 'admin'))
+    .orderBy(users.createdAt);
+}
+
+export async function demoteAdmin(userId: string) {
+  const session = await auth();
+  const user = session?.user as any;
+  if (!user || user.role !== 'superadmin') {
+    return { error: "Anda tidak memiliki izin" };
+  }
+
+  try {
+    await db
+      .update(users)
+      .set({ role: 'student' })
+      .where(eq(users.id, userId));
+
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Demote admin error:", error);
+    return { error: "Gagal menurunkan jabatan admin" };
   }
 }
