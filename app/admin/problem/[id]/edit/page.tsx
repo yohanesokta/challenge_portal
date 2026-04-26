@@ -39,6 +39,7 @@ export default function EditProblem() {
   const [duration, setDuration] = useState("");
   const [timingMode, setTimingMode] = useState<'scheduled' | 'manual'>('scheduled');
   const [isPublic, setIsPublic] = useState(true);
+  const [antiCheatEnabled, setAntiCheatEnabled] = useState(false);
   const [solutionType, setSolutionType] = useState<SolutionType>('bebas');
   const [functionName, setFunctionName] = useState("");
   const [className, setClassName] = useState("");
@@ -62,6 +63,7 @@ export default function EditProblem() {
         setDuration(problem.duration?.toString() || "");
         setTimingMode(problem.timingMode as 'scheduled' | 'manual');
         setIsPublic(problem.isPublic);
+        setAntiCheatEnabled(problem.antiCheatEnabled);
         setSolutionType((problem.solutionType as SolutionType) || 'bebas');
         setFunctionName(problem.functionName || "");
         setClassName(problem.className || "");
@@ -110,6 +112,7 @@ export default function EditProblem() {
         duration: duration ? parseInt(duration) : null,
         timingMode,
         isPublic,
+        antiCheatEnabled,
         solutionType,
         functionName: functionName || null,
         className: className || null,
@@ -331,22 +334,44 @@ export default function EditProblem() {
           </section>
 
           <section className="space-y-6">
-            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Visibilitas</h2>
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setIsPublic(true)}
-                className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${isPublic ? 'bg-green-600/20 border-green-600 text-green-500' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
-              >
-                Publik (Muncul di Beranda)
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsPublic(false)}
-                className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${!isPublic ? 'bg-orange-900/20 border-orange-600 text-orange-400' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
-              >
-                Privat (Hanya lewat URL)
-              </button>
+            <h2 className="text-xl font-bold text-white border-b border-[#333333] pb-2">Keamanan & Visibilitas</h2>
+            
+            <div className="space-y-4">
+              <label className="block text-zinc-400 text-xs font-bold uppercase">Visibilitas Publik</label>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(true)}
+                  className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${isPublic ? 'bg-green-600/20 border-green-600 text-green-500' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
+                >
+                  Publik (Muncul di Beranda)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(false)}
+                  className={`flex-1 py-3 px-4 rounded border text-sm font-bold transition-all ${!isPublic ? 'bg-orange-900/20 border-orange-600 text-orange-400' : 'bg-[#252526] border-[#333333] text-zinc-500'}`}
+                >
+                  Privat (Hanya lewat URL)
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-[#333333]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-zinc-400 text-xs font-bold uppercase mb-1">Brutal Mode Anti-Cheat</label>
+                  <p className="text-[10px] text-zinc-600 italic leading-relaxed">Mewajibkan instalasi OctaAnticheat (Extension & Go App) untuk pengerjaan soal. Tindakan mencurigakan akan mencatat proses sistem dan tab browser.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAntiCheatEnabled(!antiCheatEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${antiCheatEnabled ? 'bg-red-600' : 'bg-zinc-700'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${antiCheatEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
             </div>
           </section>
 

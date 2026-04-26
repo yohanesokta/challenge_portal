@@ -21,6 +21,7 @@ export const problems = mysqlTable('problems', {
   duration: int('duration'), // in minutes
   timingMode: varchar('timing_mode', { length: 20 }).default('scheduled').notNull(), // 'scheduled' or 'manual'
   isPublic: boolean('is_public').default(true).notNull(),
+  antiCheatEnabled: boolean('anti_cheat_enabled').default(false).notNull(),
   // SkemaSoal
   solutionType: varchar('solution_type', { length: 20 }).default('bebas').notNull(), // 'function' | 'class' | 'bebas'
   functionName: varchar('function_name', { length: 100 }),

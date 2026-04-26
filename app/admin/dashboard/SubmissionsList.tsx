@@ -154,7 +154,7 @@ export default function SubmissionsList({ submissions }: SubmissionsListProps) {
                                                         {new Date(log.createdAt).toLocaleTimeString()}
                                                     </span>
                                                 </div>
-                                                <p className="text-zinc-400 text-[11px] leading-tight">{log.description}</p>
+                                                <p className="text-zinc-400 text-[11px] leading-tight whitespace-pre-wrap">{log.description}</p>
                                             </div>
                                         ))
                                     )}

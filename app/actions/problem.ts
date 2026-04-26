@@ -99,6 +99,7 @@ export interface ProblemInput {
   duration?: number | null;
   timingMode: 'scheduled' | 'manual';
   isPublic?: boolean;
+  antiCheatEnabled?: boolean;
   // SkemaSoal
   solutionType: 'function' | 'class' | 'bebas';
   functionName?: string | null;
@@ -126,6 +127,7 @@ export async function createProblem(data: ProblemInput) {
       duration: data.duration,
       timingMode: data.timingMode,
       isPublic: data.isPublic ?? true,
+      antiCheatEnabled: data.antiCheatEnabled ?? false,
       solutionType: data.solutionType,
       functionName: data.functionName || null,
       className: data.className || null,
@@ -226,6 +228,7 @@ export async function updateProblem(id: string, data: ProblemInput) {
       duration: data.duration,
       timingMode: data.timingMode,
       isPublic: data.isPublic ?? true,
+      antiCheatEnabled: data.antiCheatEnabled ?? false,
       solutionType: data.solutionType,
       functionName: data.functionName || null,
       className: data.className || null,

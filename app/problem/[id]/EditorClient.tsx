@@ -26,6 +26,7 @@ interface EditorClientProps {
   userNim?: string;
   userId?: string;
   authEnabled?: boolean;
+  antiCheatEnabled?: boolean;
 }
 
 
@@ -90,9 +91,12 @@ function computePhase(
   return { phase: 'in_progress', effectiveEndTime: null };
 }
 
-export default function EditorClient({ problemId, endTime, duration, timingMode, startTime, solutionType, functionName, className, userNim, userId, authEnabled }: EditorClientProps) {
+export default function EditorClient({ problemId, endTime, duration, timingMode, startTime, solutionType, functionName, className, userNim, userId, authEnabled, antiCheatEnabled }: EditorClientProps) {
 
   const router = useRouter();
+
+  const [isGoAppRunning, setIsGoAppRunning] = useState(false);
+  const [checkingComponents, setCheckingComponents] = useState(antiCheatEnabled);
 
   const [reviewModal, setReviewModal] = useState<{
     code: string;
@@ -170,6 +174,27 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const editorRef = useRef<any>(null);
 
   useEffect(() => {
+    if (!antiCheatEnabled) return;
+
+    const checkComponents = async () => {
+      // Check Go App via fetch
+      try {
+        const res = await fetch("http://localhost:9012/ping");
+        if (res.ok) setIsGoAppRunning(true);
+        else setIsGoAppRunning(false);
+      } catch (e) {
+        setIsGoAppRunning(false);
+      }
+
+      setCheckingComponents(false);
+    };
+
+    checkComponents();
+    const interval = setInterval(checkComponents, 2000);
+    return () => clearInterval(interval);
+  }, [antiCheatEnabled]);
+
+  useEffect(() => {
     return () => {
       if (pyrightProvider && editorRef.current) {
         console.log("Stopping Pyright diagnostics for instance...");
@@ -178,29 +203,55 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     };
   }, []);
 
+  const getBrutalData = useCallback(async () => {
+    let activeWindow = "Unknown";
+
+    if (isGoAppRunning) {
+      try {
+        const res = await fetch("http://localhost:9012/status");
+        if (res.ok) {
+          const data = await res.json();
+          activeWindow = data.active_window || "Unknown";
+        }
+      } catch (e) {}
+    }
+
+    return { activeWindow };
+  }, [isGoAppRunning]);
+
   useEffect(() => {
     if (phase !== 'in_progress' || isNimLocked || isReadOnly) return;
 
     let blurStartTime: number | null = null;
+    let lastLogTime = 0;
+
+    const handleViolation = async (type: string, baseDesc: string) => {
+      const now = Date.now();
+      if (now - lastLogTime < 1500) return;
+      lastLogTime = now;
+
+      let fullDesc = baseDesc;
+      if (antiCheatEnabled) {
+        const { activeWindow } = await getBrutalData();
+        fullDesc += `\n[WINDOW]: ${activeWindow}`;
+      }
+      
+      logCheatEvent({
+        userId,
+        problemId,
+        eventType: type,
+        description: fullDesc,
+      });
+    };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         blurStartTime = Date.now();
-        logCheatEvent({
-          userId,
-          problemId,
-          eventType: 'tab_hidden',
-          description: 'Tab disembunyikan / pengguna pindah tab',
-        });
+        handleViolation('tab_hidden', 'Tab disembunyikan / pengguna pindah tab');
         setCheatWarning("⚠️ Peringatan: Anda meninggalkan tab! Aktivitas ini dicatat.");
       } else {
         const awayDuration = blurStartTime ? Math.round((Date.now() - blurStartTime) / 1000) : 0;
-        logCheatEvent({
-          userId,
-          problemId,
-          eventType: 'tab_focus',
-          description: `Pengguna kembali ke tab setelah ${awayDuration} detik`,
-        });
+        handleViolation('tab_focus', `Pengguna kembali ke tab setelah ${awayDuration} detik`);
         if (awayDuration > 2) {
             setCheatWarning(`⚠️ Peringatan: Anda meninggalkan pengerjaan selama ${awayDuration} detik. Aktivitas ini dilaporkan.`);
             setTimeout(() => setCheatWarning(null), 5000);
@@ -211,12 +262,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
     const handleBlur = () => {
       blurStartTime = Date.now();
-      logCheatEvent({
-        userId,
-        problemId,
-        eventType: 'window_blur',
-        description: 'Jendela kehilangan fokus (mungkin membuka aplikasi lain)',
-      });
+      handleViolation('window_blur', 'Jendela kehilangan fokus (mungkin membuka aplikasi lain)');
       setCheatWarning("⚠️ Peringatan: Fokus beralih ke aplikasi lain! Tetaplah di jendela ini.");
       setTimeout(() => setCheatWarning(null), 5000);
     };
@@ -224,12 +270,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     const handleFocus = () => {
       const awayDuration = blurStartTime ? Math.round((Date.now() - blurStartTime) / 1000) : 0;
       if (awayDuration > 0) {
-        logCheatEvent({
-          userId,
-          problemId,
-          eventType: 'window_focus',
-          description: `Jendela kembali fokus setelah ${awayDuration} detik`,
-        });
+        handleViolation('window_focus', `Jendela kembali fokus setelah ${awayDuration} detik`);
       }
       blurStartTime = null;
     };
@@ -562,6 +603,61 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const canRunCode = !isExecuting && !isReadOnly;
 
   const renderPhaseOverlay = () => {
+    if (antiCheatEnabled && !isGoAppRunning && !checkingComponents) {
+        return (
+          <div className="absolute inset-0 bg-[#1e1e1e]/95 z-[100] flex items-center justify-center p-6 backdrop-blur-md">
+            <div className="bg-[#252526] border border-red-600/50 rounded-xl p-8 max-w-lg w-full shadow-2xl text-center">
+              <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="material-symbols-outlined text-red-500 text-5xl">security</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-4">Anti-Cheat Wajib Digunakan</h2>
+              <p className="text-zinc-400 mb-8 leading-relaxed text-sm">
+                Soal ini mewajibkan penggunaan sistem proteksi <strong>OctaAnticheat</strong>. Silakan jalankan aplikasi tersebut untuk melanjutkan pengerjaan.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                {/* Go App Status */}
+                <div className={`flex items-center justify-between p-4 rounded-lg border transition-all ${isGoAppRunning ? 'bg-green-900/10 border-green-600/30' : 'bg-zinc-800 border-[#333333]'}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`material-symbols-outlined ${isGoAppRunning ? 'text-green-500' : 'text-zinc-500'}`}>
+                      {isGoAppRunning ? 'check_circle' : 'terminal'}
+                    </span>
+                    <div className="text-left">
+                      <p className={`text-sm font-bold ${isGoAppRunning ? 'text-green-400' : 'text-zinc-300'}`}>OctaAnticheat System App</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">Native Process & Window Scanner</p>
+                    </div>
+                  </div>
+                  {!isGoAppRunning && (
+                    <a href="/apps/OctaAnticheat-Setup.exe" className="text-[10px] font-bold text-blue-400 hover:underline uppercase">Download</a>
+                  )}
+                </div>
+              </div>
+
+              {!isGoAppRunning ? (
+                <div className="bg-orange-900/10 border border-orange-900/30 p-4 rounded-lg mb-6">
+                  <p className="text-xs text-orange-400 leading-tight">
+                    <strong>Penting:</strong> Pastikan aplikasi OctaAnticheat sudah berjalan di latar belakang. Halaman akan mendeteksi secara otomatis.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-green-500 font-bold mb-6 animate-pulse">Sistem siap! Anda bisa melanjutkan.</p>
+              )}
+
+              <button
+                disabled={!isGoAppRunning}
+                onClick={() => setCheckingComponents(false)}
+                className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
+                  isGoAppRunning
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/20'
+                    : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                }`}
+              >
+                Mulai Mengerjakan
+              </button>
+            </div>
+          </div>
+        );
+    }
     if (timeoutMessage) {
       return (
         <div className="absolute inset-0 bg-[#1e1e1e]/95 z-50 flex items-center justify-center p-6 backdrop-blur-sm">

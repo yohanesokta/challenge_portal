@@ -168,6 +168,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
                 userNim={(session?.user as any)?.nim}
                 userId={session?.user?.id}
                 authEnabled={authEnabled}
+                antiCheatEnabled={problem.antiCheatEnabled}
               />
             </div>
           </div>
