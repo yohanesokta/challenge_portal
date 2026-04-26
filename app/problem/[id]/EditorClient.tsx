@@ -347,7 +347,6 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('paste', handlePaste);
     };
   }, [phase, isNimLocked, isReadOnly, userId, problemId]);
