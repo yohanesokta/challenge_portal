@@ -288,8 +288,8 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
       handleViolation(type, `${returnDesc} setelah ${awayDuration} detik`);
       
       const msg = awayDuration > 2 
-        ? `⚠️ Peringatan: Anda meninggalkan pengerjaan selama ${awayDuration} detik. Aktivitas ini dilaporkan.`
-        : "⚠️ Anda kembali ke pengerjaan. Tetaplah di jendela ini.";
+        ? ` Peringatan: Anda meninggalkan pengerjaan selama ${awayDuration} detik. Aktivitas ini dilaporkan.`
+        : " Anda kembali ke pengerjaan. Tetaplah di jendela ini.";
       
       showCheatWarning(msg, 4000);
     };
@@ -297,7 +297,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         startAwayMonitoring('tab_hidden', 'Tab disembunyikan / pengguna pindah tab');
-        showCheatWarning("⚠️ Peringatan: Anda meninggalkan tab! Aktivitas ini dicatat.", 1000000); // Large duration while away
+        showCheatWarning(" Peringatan: Anda meninggalkan tab! Aktivitas ini dicatat.", 1000000); // Large duration while away
       } else {
         stopAwayMonitoring('tab_focus', 'Pengguna kembali ke tab');
       }
@@ -305,7 +305,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
     const handleBlur = () => {
       startAwayMonitoring('window_blur', 'Jendela kehilangan fokus (mungkin membuka aplikasi lain)');
-      showCheatWarning("⚠️ Peringatan: Fokus beralih ke aplikasi lain! Tetaplah di jendela ini.", 1000000); // Large duration while away
+      showCheatWarning(" Peringatan: Fokus beralih ke aplikasi lain! Tetaplah di jendela ini.", 1000000); // Large duration while away
     };
 
     const handleFocus = () => {
@@ -321,22 +321,10 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
       });
     };
 
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      logCheatEvent({
-        userId,
-        problemId,
-        eventType: 'context_menu',
-        description: 'Pengguna mencoba klik kanan (mungkin untuk Copy/Paste)',
-      });
-      showCheatWarning("⚠️ Peringatan: Klik kanan dilarang selama pengerjaan!", 3000);
-    };
-
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('resize', handleResize);
-    window.addEventListener('contextmenu', handleContextMenu);
 
     const handlePaste = (e: ClipboardEvent) => {
       const pastedData = e.clipboardData?.getData('text') || '';
@@ -347,7 +335,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
           eventType: 'paste',
           description: `Pengguna menempelkan teks sepanjang ${pastedData.length} karakter`,
         });
-        showCheatWarning("⚠️ Peringatan: Menempelkan kode (copy-paste) terdeteksi dan dicatat.", 5000);
+        showCheatWarning(" Peringatan: Menempelkan kode (copy-paste) terdeteksi dan dicatat.", 5000);
       }
     };
 
@@ -622,54 +610,72 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     if (antiCheatEnabled && !isGoAppRunning && !checkingComponents) {
         return (
           <div className="absolute inset-0 bg-[#1e1e1e]/95 z-[100] flex items-center justify-center p-6 backdrop-blur-md">
-            <div className="bg-[#252526] border border-red-600/50 rounded-xl p-8 max-w-lg w-full shadow-2xl text-center">
-              <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="material-symbols-outlined text-red-500 text-5xl">security</span>
+            <div className={`bg-[#252526] border border-red-600/50 rounded-xl p-8 ${!isGoAppRunning ? 'max-w-4xl' : 'max-w-lg'} w-full shadow-2xl text-center`}>
+              <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="material-symbols-outlined text-red-500 text-4xl">security</span>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-4">Anti-Cheat Wajib Digunakan</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">Anti-Cheat Wajib Digunakan</h2>
               <p className="text-zinc-400 mb-8 leading-relaxed text-sm">
-                Soal ini mewajibkan penggunaan sistem proteksi <strong>OctaAnticheat</strong>. Silakan jalankan aplikasi tersebut untuk melanjutkan pengerjaan.
+                Soal ini mewajibkan penggunaan sistem proteksi <strong>OctaAnticheat</strong>.
               </p>
               
-              <div className="space-y-4 mb-8">
-                {/* Go App Status */}
-                <div className={`flex items-center justify-between p-4 rounded-lg border transition-all ${isGoAppRunning ? 'bg-green-900/10 border-green-600/30' : 'bg-zinc-800 border-[#333333]'}`}>
-                  <div className="flex items-center gap-3">
-                    <span className={`material-symbols-outlined ${isGoAppRunning ? 'text-green-500' : 'text-zinc-500'}`}>
-                      {isGoAppRunning ? 'check_circle' : 'terminal'}
-                    </span>
-                    <div className="text-left">
-                      <p className={`text-sm font-bold ${isGoAppRunning ? 'text-green-400' : 'text-zinc-300'}`}>OctaAnticheat System App</p>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">Native Process & Window Scanner</p>
+              <div className="flex flex-col md:flex-row gap-8 items-stretch mb-8">
+                {/* Left Column: Status & Warnings */}
+                <div className="flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-4">
+                    <div className={`flex items-center justify-between p-4 rounded-lg border transition-all ${isGoAppRunning ? 'bg-green-900/10 border-green-600/30' : 'bg-zinc-800 border-[#333333]'}`}>
+                      <div className="flex items-center gap-3 text-left">
+                        <span className={`material-symbols-outlined ${isGoAppRunning ? 'text-green-500' : 'text-zinc-500'}`}>
+                          {isGoAppRunning ? 'check_circle' : 'terminal'}
+                        </span>
+                        <div>
+                          <p className={`text-sm font-bold ${isGoAppRunning ? 'text-green-400' : 'text-zinc-300'}`}>OctaAnticheat System App</p>
+                          <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">Native Process Scanner</p>
+                        </div>
+                      </div>
+                      {!isGoAppRunning && (
+                        <a href="https://github.com/yohanesokta/Codelab-JAI/releases/download/1.0/octaAnticheat.exe" className="text-[10px] font-bold text-blue-400 hover:underline uppercase flex-shrink-0">Download</a>
+                      )}
+                    </div>
+
+                    {!isGoAppRunning ? (
+                      <div className="bg-orange-900/10 border border-orange-900/30 p-4 rounded-lg text-left">
+                        <p className="text-xs text-orange-400 leading-tight">
+                          <strong>Penting:</strong> Pastikan aplikasi OctaAnticheat sudah berjalan di latar belakang. Halaman akan mendeteksi secara otomatis.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-green-500 font-bold animate-pulse text-sm">Sistem siap! Anda bisa melanjutkan.</p>
+                    )}
+                  </div>
+
+                  <button
+                    disabled={!isGoAppRunning}
+                    onClick={() => setCheckingComponents(false)}
+                    className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
+                      isGoAppRunning
+                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/20'
+                        : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                    }`}
+                  >
+                    Mulai Mengerjakan
+                  </button>
+                </div>
+
+                {/* Right Column: How to Run Image */}
+                {!isGoAppRunning && (
+                  <div className="flex-1 flex flex-col border-t md:border-t-0 md:border-l border-[#333333] pt-6 md:pt-0 md:pl-8 text-left">
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">Cara Menjalankan Secara Manual</p>
+                    <div className="rounded-lg overflow-hidden border border-[#333333] bg-black/20 group cursor-zoom-in h-full">
+                      <img 
+                        src="/howtorun.png" 
+                        alt="Cara Menjalankan OctaAnticheat" 
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" 
+                      />
                     </div>
                   </div>
-                  {!isGoAppRunning && (
-                    <a href="/apps/OctaAnticheat-Setup.exe" className="text-[10px] font-bold text-blue-400 hover:underline uppercase">Download</a>
-                  )}
-                </div>
+                )}
               </div>
-
-              {!isGoAppRunning ? (
-                <div className="bg-orange-900/10 border border-orange-900/30 p-4 rounded-lg mb-6">
-                  <p className="text-xs text-orange-400 leading-tight">
-                    <strong>Penting:</strong> Pastikan aplikasi OctaAnticheat sudah berjalan di latar belakang. Halaman akan mendeteksi secara otomatis.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-green-500 font-bold mb-6 animate-pulse">Sistem siap! Anda bisa melanjutkan.</p>
-              )}
-
-              <button
-                disabled={!isGoAppRunning}
-                onClick={() => setCheckingComponents(false)}
-                className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
-                  isGoAppRunning
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/20'
-                    : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                }`}
-              >
-                Mulai Mengerjakan
-              </button>
             </div>
           </div>
         );
