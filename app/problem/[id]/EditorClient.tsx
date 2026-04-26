@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { submitCode, runTests, runCode, stopCode, autoSubmitOnExpire, getExecutionStatus, sendStdin } from "@/app/actions/submission";
+import { submitCode, runTests, runCode, stopCode, autoSubmitOnExpire, getExecutionStatus, sendStdin, logCheatEvent } from "@/app/actions/submission";
 import { getProblemStatus } from "@/app/actions/problem";
 import { updateUserNim } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
@@ -164,6 +164,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null);
+  const [cheatWarning, setCheatWarning] = useState<string | null>(null);
 
   const consoleEndRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
@@ -176,6 +177,135 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (phase !== 'in_progress' || isNimLocked || isReadOnly) return;
+
+    let blurStartTime: number | null = null;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        blurStartTime = Date.now();
+        logCheatEvent({
+          userId,
+          problemId,
+          eventType: 'tab_hidden',
+          description: 'Tab disembunyikan / pengguna pindah tab',
+        });
+        setCheatWarning("⚠️ Peringatan: Anda meninggalkan tab! Aktivitas ini dicatat.");
+      } else {
+        const awayDuration = blurStartTime ? Math.round((Date.now() - blurStartTime) / 1000) : 0;
+        logCheatEvent({
+          userId,
+          problemId,
+          eventType: 'tab_focus',
+          description: `Pengguna kembali ke tab setelah ${awayDuration} detik`,
+        });
+        if (awayDuration > 2) {
+            setCheatWarning(`⚠️ Peringatan: Anda meninggalkan pengerjaan selama ${awayDuration} detik. Aktivitas ini dilaporkan.`);
+            setTimeout(() => setCheatWarning(null), 5000);
+        }
+        blurStartTime = null;
+      }
+    };
+
+    const handleBlur = () => {
+      blurStartTime = Date.now();
+      logCheatEvent({
+        userId,
+        problemId,
+        eventType: 'window_blur',
+        description: 'Jendela kehilangan fokus (mungkin membuka aplikasi lain)',
+      });
+      setCheatWarning("⚠️ Peringatan: Fokus beralih ke aplikasi lain! Tetaplah di jendela ini.");
+      setTimeout(() => setCheatWarning(null), 5000);
+    };
+
+    const handleFocus = () => {
+      const awayDuration = blurStartTime ? Math.round((Date.now() - blurStartTime) / 1000) : 0;
+      if (awayDuration > 0) {
+        logCheatEvent({
+          userId,
+          problemId,
+          eventType: 'window_focus',
+          description: `Jendela kembali fokus setelah ${awayDuration} detik`,
+        });
+      }
+      blurStartTime = null;
+    };
+
+    const handleResize = () => {
+      logCheatEvent({
+        userId,
+        problemId,
+        eventType: 'window_resize',
+        description: `Ukuran jendela diubah ke ${window.innerWidth}x${window.innerHeight} (Indikasi split-screen dengan aplikasi lain)`,
+      });
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      logCheatEvent({
+        userId,
+        problemId,
+        eventType: 'context_menu',
+        description: 'Pengguna mencoba klik kanan (mungkin untuk Copy/Paste)',
+      });
+      setCheatWarning("⚠️ Peringatan: Klik kanan dilarang selama pengerjaan!");
+      setTimeout(() => setCheatWarning(null), 3000);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Detect Ctrl+C, Ctrl+V, Ctrl+F, Ctrl+S, Ctrl+U (View Source), F12
+      const isControl = e.ctrlKey || e.metaKey;
+      if (isControl || e.key === 'F12') {
+        const key = e.key.toLowerCase();
+        if (['c', 'v', 'f', 's', 'u'].includes(key) || e.key === 'F12') {
+          logCheatEvent({
+            userId,
+            problemId,
+            eventType: 'forbidden_key',
+            description: `Mencoba menekan shortcut keyboard: ${isControl ? 'Ctrl+' : ''}${key.toUpperCase()}`,
+          });
+          setCheatWarning(`⚠️ Shortcut ${isControl ? 'Ctrl+' : ''}${key.toUpperCase()} dilarang dan dicatat!`);
+          setTimeout(() => setCheatWarning(null), 3000);
+        }
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('keydown', handleKeyDown);
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const pastedData = e.clipboardData?.getData('text') || '';
+      if (pastedData.length > 10) { // Only log significant pastes
+        logCheatEvent({
+          userId,
+          problemId,
+          eventType: 'paste',
+          description: `Pengguna menempelkan teks sepanjang ${pastedData.length} karakter`,
+        });
+        setCheatWarning("⚠️ Peringatan: Menempelkan kode (copy-paste) terdeteksi dan dicatat.");
+        setTimeout(() => setCheatWarning(null), 5000);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [phase, isNimLocked, isReadOnly, userId, problemId]);
 
   useEffect(() => {
     consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -551,6 +681,15 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   return (
     <div className="flex flex-col h-full relative">
       {renderPhaseOverlay()}
+      
+      {cheatWarning && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-red-400">
+            <span className="material-symbols-outlined animate-bounce">warning</span>
+            <span className="text-sm font-bold whitespace-nowrap">{cheatWarning}</span>
+          </div>
+        </div>
+      )}
 
       <div className="flex bg-[#252526] border-b border-[#333333] px-4 py-2 items-center justify-between z-10">
         <div className="flex items-center gap-4">

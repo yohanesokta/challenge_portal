@@ -110,3 +110,17 @@ export const settings = mysqlTable('settings', {
   value: text('value').notNull(), // JSON string for complex objects
   updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
 });
+
+export const cheatLogs = mysqlTable('cheat_logs', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: varchar('user_id', { length: 255 })
+    .references(() => users.id, { onDelete: 'cascade' }),
+  problemId: varchar('problem_id', { length: 36 })
+    .notNull()
+    .references(() => problems.id, { onDelete: 'cascade' }),
+  submissionId: int('submission_id')
+    .references(() => submissions.id, { onDelete: 'cascade' }),
+  eventType: varchar('event_type', { length: 50 }).notNull(), // 'blur', 'focus', 'visibility_hidden', etc.
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

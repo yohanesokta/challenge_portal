@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
+import { getCheatLogsBySubmissionId } from '@/app/actions/submission';
 
 interface Submission {
     id: number;
@@ -19,6 +20,20 @@ interface SubmissionsListProps {
 
 export default function SubmissionsList({ submissions }: SubmissionsListProps) {
     const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+    const [cheatLogs, setCheatLogs] = useState<any[]>([]);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+    useEffect(() => {
+        if (selectedSubmission) {
+            setIsLoadingLogs(true);
+            getCheatLogsBySubmissionId(selectedSubmission.id).then(logs => {
+                setCheatLogs(logs);
+                setIsLoadingLogs(false);
+            });
+        } else {
+            setCheatLogs([]);
+        }
+    }, [selectedSubmission]);
 
     return (
         <div className="bg-[#252526] border border-[#333333] rounded-lg p-6">
@@ -87,22 +102,70 @@ export default function SubmissionsList({ submissions }: SubmissionsListProps) {
                                 <span className="material-symbols-outlined text-sm">close</span>
                             </button>
                         </div>
-                        <div className="flex-1 relative">
-                            <Editor
-                                height="100%"
-                                defaultLanguage="python"
-                                theme="vs-dark"
-                                value={selectedSubmission.code}
-                                options={{
-                                    readOnly: true,
-                                    fontSize: 14,
-                                    minimap: { enabled: true },
-                                    automaticLayout: true,
-                                    scrollBeyondLastLine: false,
-                                    padding: { top: 16 },
-                                    fontFamily: "'Fira Code', 'Courier New', monospace",
-                                }}
-                            />
+                        <div className="flex-1 flex overflow-hidden">
+                            <div className="flex-1 relative border-r border-[#333333]">
+                                <div className="absolute top-0 left-0 bg-[#2d2d2d] px-3 py-1 text-[10px] text-zinc-500 font-bold uppercase tracking-widest z-10 border-r border-b border-[#333333]">
+                                    Source Code
+                                </div>
+                                <Editor
+                                    height="100%"
+                                    defaultLanguage="python"
+                                    theme="vs-dark"
+                                    value={selectedSubmission.code}
+                                    options={{
+                                        readOnly: true,
+                                        fontSize: 14,
+                                        minimap: { enabled: true },
+                                        automaticLayout: true,
+                                        scrollBeyondLastLine: false,
+                                        padding: { top: 40 },
+                                        fontFamily: "'Fira Code', 'Courier New', monospace",
+                                    }}
+                                />
+                            </div>
+                            
+                            <div className="w-80 bg-[#1e1e1e] flex flex-col overflow-hidden">
+                                <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#333333] flex items-center justify-between">
+                                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Aktivitas Anti-Cheat</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${cheatLogs.length > 0 ? 'bg-red-900/40 text-red-400' : 'bg-green-900/40 text-green-400'}`}>
+                                        {cheatLogs.length} Events
+                                    </span>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                                    {isLoadingLogs ? (
+                                        <div className="flex flex-col items-center justify-center h-40 gap-2 text-zinc-500">
+                                            <span className="material-symbols-outlined animate-spin">sync</span>
+                                            <span className="text-[10px] uppercase font-bold tracking-widest">Memuat log...</span>
+                                        </div>
+                                    ) : cheatLogs.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-40 gap-2 text-zinc-600 italic">
+                                            <span className="material-symbols-outlined text-3xl">check_circle</span>
+                                            <span className="text-xs">Tidak ada aktivitas mencurigakan.</span>
+                                        </div>
+                                    ) : (
+                                        cheatLogs.map((log) => (
+                                            <div key={log.id} className="bg-[#252526] border border-[#333333] rounded p-3 text-xs">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className={`font-bold uppercase tracking-tighter ${log.eventType === 'blur' ? 'text-orange-400' : 'text-amber-400'}`}>
+                                                        {log.eventType}
+                                                    </span>
+                                                    <span className="text-[9px] text-zinc-500">
+                                                        {new Date(log.createdAt).toLocaleTimeString()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-zinc-400 text-[11px] leading-tight">{log.description}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                
+                                <div className="p-4 bg-red-900/10 border-t border-red-900/20">
+                                    <p className="text-[9px] text-red-400 font-bold uppercase tracking-widest leading-tight">
+                                        💡 Admin Note: Fokuskan pada log "blur" yang berulang saat pengerjaan soal.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                         <div className="bg-[#252526] px-6 py-3 border-t border-[#333333] text-right">
                              <button 

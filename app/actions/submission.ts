@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import { submissions, problems } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { submissions, problems, cheatLogs } from '@/db/schema';
+import { eq, and, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getProblemById } from './problem';
 import { spawn, ChildProcess } from 'child_process';
@@ -356,15 +356,50 @@ export async function runTests(data: { problemId: string; code: string }) {
 // Submit
 // ─────────────────────────────────────────────────────────────────────────────
 
+export async function logCheatEvent(data: { userId?: string; problemId: string; eventType: string; description?: string }) {
+  try {
+    await db.insert(cheatLogs).values({
+      userId: data.userId,
+      problemId: data.problemId,
+      eventType: data.eventType,
+      description: data.description,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Gagal mencatat log anti-cheat:', error);
+    return { success: false };
+  }
+}
+
+export async function getCheatLogsBySubmissionId(submissionId: number) {
+  return await db.select()
+    .from(cheatLogs)
+    .where(eq(cheatLogs.submissionId, submissionId))
+    .orderBy(cheatLogs.createdAt);
+}
+
 export async function autoSubmitOnExpire(data: { nim: string; problemId: string; code: string; userId?: string }) {
   try {
-    await db.insert(submissions).values({
+    const [result] = await db.insert(submissions).values({
       nim: data.nim,
       userId: data.userId,
       problemId: data.problemId,
       code: data.code,
       status: 'fail',
     });
+
+    const newSubmissionId = (result as any).insertId;
+
+    // Link unlinked cheat logs to this submission
+    if (data.userId) {
+      await db.update(cheatLogs)
+        .set({ submissionId: newSubmissionId })
+        .where(and(
+          eq(cheatLogs.userId, data.userId),
+          eq(cheatLogs.problemId, data.problemId),
+          isNull(cheatLogs.submissionId)
+        ));
+    }
 
     revalidatePath('/admin/dashboard');
     revalidatePath(`/admin/problem/${data.problemId}/results`);
@@ -392,13 +427,26 @@ export async function submitCode(data: { nim: string; problemId: string; code: s
     if (!testResult.success) return { success: false, error: testResult.error };
 
     const finalStatus = testResult.allPassed ? 'pass' : 'fail';
-    await db.insert(submissions).values({
+    const [result] = await db.insert(submissions).values({
       nim: data.nim,
       userId: data.userId,
       problemId: data.problemId,
       code: data.code,
       status: finalStatus,
     });
+
+    const newSubmissionId = (result as any).insertId;
+
+    // Link unlinked cheat logs to this submission
+    if (data.userId) {
+      await db.update(cheatLogs)
+        .set({ submissionId: newSubmissionId })
+        .where(and(
+          eq(cheatLogs.userId, data.userId),
+          eq(cheatLogs.problemId, data.problemId),
+          isNull(cheatLogs.submissionId)
+        ));
+    }
 
     revalidatePath('/admin/dashboard');
     return { success: true, status: finalStatus, allPassed: testResult.allPassed };

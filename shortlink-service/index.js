@@ -9,14 +9,14 @@ const port = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Logger middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   if (req.method === 'POST') console.log('Body:', req.body);
   next();
 });
 
-// Database connection
+const appUrl = process.env.APP_URL || "http://localhost:3000"
+
 let pool;
 async function connectDB() {
   const dbUrl = process.env.DATABASE_URL || "mysql://root:root@db:3306/coding_platform";
@@ -55,8 +55,6 @@ async function generateUniqueSlug() {
     }
     
     attempts++;
-    // If we've tried too many times (collision), increase length
-    // 50^4 is ~6.2M combinations, so 100 attempts is safe
     if (attempts > 100) {
       length++;
       attempts = 0;
@@ -64,7 +62,6 @@ async function generateUniqueSlug() {
   }
 }
 
-// Redirect shortlink
 app.get('/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -72,14 +69,13 @@ app.get('/:id', async (req, res) => {
     if (rows.length > 0) {
       return res.redirect(rows[0].long_url);
     }
-    return res.status(404).send('Link not found');
+    return res.redirect(appUrl);
   } catch (error) {
     console.error('Error fetching link:', error);
     res.status(500).send('Internal Server Error');
   }
 });
 
-// Create/Sync shortlink
 app.post('/links', async (req, res) => {
   let { id, long_url } = req.body;
   
@@ -88,7 +84,6 @@ app.post('/links', async (req, res) => {
   }
 
   try {
-    // If ID is not provided, generate a random one
     if (!id) {
       id = await generateUniqueSlug();
     }
