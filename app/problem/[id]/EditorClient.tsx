@@ -97,6 +97,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
   const [isGoAppRunning, setIsGoAppRunning] = useState(false);
   const [checkingComponents, setCheckingComponents] = useState(antiCheatEnabled);
+  const [isMounted, setIsMounted] = useState(false);
 
   const [reviewModal, setReviewModal] = useState<{
     code: string;
@@ -136,11 +137,16 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     }
   };
 
-  const initial = computePhase(timingMode, startTime, endTime, duration);
-
-  const [phase, setPhase] = useState<ProblemPhase>(initial.phase);
-  const [effectiveEndTime, setEffectiveEndTime] = useState<Date | null>(initial.effectiveEndTime);
+  const [phase, setPhase] = useState<ProblemPhase>('not_started');
+  const [effectiveEndTime, setEffectiveEndTime] = useState<Date | null>(null);
   const [currentStartTime, setCurrentStartTime] = useState<Date | null>(startTime ? new Date(startTime) : null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const initial = computePhase(timingMode, startTime, endTime, duration);
+    setPhase(initial.phase);
+    setEffectiveEndTime(initial.effectiveEndTime);
+  }, [timingMode, startTime, endTime, duration]);
 
   const [code, setCode] = useState(() => getStarterCode(solutionType, functionName, className));
   const [nim, setNim] = useState(userNim || "");
@@ -169,6 +175,18 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null);
   const [cheatWarning, setCheatWarning] = useState<string | null>(null);
+  const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const blurStartTimeRef = useRef<number | null>(null);
+  const awayIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showCheatWarning = useCallback((message: string, duration: number) => {
+    if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
+    setCheatWarning(message);
+    warningTimeoutRef.current = setTimeout(() => {
+      setCheatWarning(null);
+      warningTimeoutRef.current = null;
+    }, duration);
+  }, []);
 
   const consoleEndRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
@@ -179,7 +197,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     const checkComponents = async () => {
       // Check Go App via fetch
       try {
-        const res = await fetch("http://localhost:9012/ping");
+        const res = await fetch("http://localhost:9012/ping", { signal: AbortSignal.timeout(1000) });
         if (res.ok) setIsGoAppRunning(true);
         else setIsGoAppRunning(false);
       } catch (e) {
@@ -208,7 +226,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
     if (isGoAppRunning) {
       try {
-        const res = await fetch("http://localhost:9012/status");
+        const res = await fetch("http://localhost:9012/status", { signal: AbortSignal.timeout(1000) });
         if (res.ok) {
           const data = await res.json();
           activeWindow = data.active_window || "Unknown";
@@ -222,12 +240,12 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
   useEffect(() => {
     if (phase !== 'in_progress' || isNimLocked || isReadOnly) return;
 
-    let blurStartTime: number | null = null;
     let lastLogTime = 0;
 
     const handleViolation = async (type: string, baseDesc: string) => {
       const now = Date.now();
-      if (now - lastLogTime < 1500) return;
+      // Only throttle if it's the SAME type, but for periodic checks we want them consistent
+      if (type !== 'away_periodic' && now - lastLogTime < 1500) return;
       lastLogTime = now;
 
       let fullDesc = baseDesc;
@@ -244,35 +262,54 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
       });
     };
 
+    const startAwayMonitoring = (type: string, initialDesc: string) => {
+      if (awayIntervalRef.current) clearInterval(awayIntervalRef.current);
+      
+      blurStartTimeRef.current = Date.now();
+      handleViolation(type, initialDesc);
+      
+      awayIntervalRef.current = setInterval(() => {
+        const duration = Math.round((Date.now() - (blurStartTimeRef.current || Date.now())) / 1000);
+        handleViolation('away_periodic', `Pengguna masih berada di luar tab/jendela (${duration} detik)`);
+      }, 2000);
+    };
+
+    const stopAwayMonitoring = (type: string, returnDesc: string) => {
+      if (awayIntervalRef.current) {
+        clearInterval(awayIntervalRef.current);
+        awayIntervalRef.current = null;
+      }
+
+      const startTime = blurStartTimeRef.current;
+      if (startTime === null) return;
+      blurStartTimeRef.current = null;
+
+      const awayDuration = Math.round((Date.now() - startTime) / 1000);
+      handleViolation(type, `${returnDesc} setelah ${awayDuration} detik`);
+      
+      const msg = awayDuration > 2 
+        ? `⚠️ Peringatan: Anda meninggalkan pengerjaan selama ${awayDuration} detik. Aktivitas ini dilaporkan.`
+        : "⚠️ Anda kembali ke pengerjaan. Tetaplah di jendela ini.";
+      
+      showCheatWarning(msg, 4000);
+    };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        blurStartTime = Date.now();
-        handleViolation('tab_hidden', 'Tab disembunyikan / pengguna pindah tab');
-        setCheatWarning("⚠️ Peringatan: Anda meninggalkan tab! Aktivitas ini dicatat.");
+        startAwayMonitoring('tab_hidden', 'Tab disembunyikan / pengguna pindah tab');
+        showCheatWarning("⚠️ Peringatan: Anda meninggalkan tab! Aktivitas ini dicatat.", 1000000); // Large duration while away
       } else {
-        const awayDuration = blurStartTime ? Math.round((Date.now() - blurStartTime) / 1000) : 0;
-        handleViolation('tab_focus', `Pengguna kembali ke tab setelah ${awayDuration} detik`);
-        if (awayDuration > 2) {
-            setCheatWarning(`⚠️ Peringatan: Anda meninggalkan pengerjaan selama ${awayDuration} detik. Aktivitas ini dilaporkan.`);
-            setTimeout(() => setCheatWarning(null), 5000);
-        }
-        blurStartTime = null;
+        stopAwayMonitoring('tab_focus', 'Pengguna kembali ke tab');
       }
     };
 
     const handleBlur = () => {
-      blurStartTime = Date.now();
-      handleViolation('window_blur', 'Jendela kehilangan fokus (mungkin membuka aplikasi lain)');
-      setCheatWarning("⚠️ Peringatan: Fokus beralih ke aplikasi lain! Tetaplah di jendela ini.");
-      setTimeout(() => setCheatWarning(null), 5000);
+      startAwayMonitoring('window_blur', 'Jendela kehilangan fokus (mungkin membuka aplikasi lain)');
+      showCheatWarning("⚠️ Peringatan: Fokus beralih ke aplikasi lain! Tetaplah di jendela ini.", 1000000); // Large duration while away
     };
 
     const handleFocus = () => {
-      const awayDuration = blurStartTime ? Math.round((Date.now() - blurStartTime) / 1000) : 0;
-      if (awayDuration > 0) {
-        handleViolation('window_focus', `Jendela kembali fokus setelah ${awayDuration} detik`);
-      }
-      blurStartTime = null;
+      stopAwayMonitoring('window_focus', 'Jendela kembali fokus');
     };
 
     const handleResize = () => {
@@ -292,26 +329,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
         eventType: 'context_menu',
         description: 'Pengguna mencoba klik kanan (mungkin untuk Copy/Paste)',
       });
-      setCheatWarning("⚠️ Peringatan: Klik kanan dilarang selama pengerjaan!");
-      setTimeout(() => setCheatWarning(null), 3000);
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Detect Ctrl+C, Ctrl+V, Ctrl+F, Ctrl+S, Ctrl+U (View Source), F12
-      const isControl = e.ctrlKey || e.metaKey;
-      if (isControl || e.key === 'F12') {
-        const key = e.key.toLowerCase();
-        if (['c', 'v', 'f', 's', 'u'].includes(key) || e.key === 'F12') {
-          logCheatEvent({
-            userId,
-            problemId,
-            eventType: 'forbidden_key',
-            description: `Mencoba menekan shortcut keyboard: ${isControl ? 'Ctrl+' : ''}${key.toUpperCase()}`,
-          });
-          setCheatWarning(`⚠️ Shortcut ${isControl ? 'Ctrl+' : ''}${key.toUpperCase()} dilarang dan dicatat!`);
-          setTimeout(() => setCheatWarning(null), 3000);
-        }
-      }
+      showCheatWarning("⚠️ Peringatan: Klik kanan dilarang selama pengerjaan!", 3000);
     };
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
@@ -319,7 +337,6 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     window.addEventListener('focus', handleFocus);
     window.addEventListener('resize', handleResize);
     window.addEventListener('contextmenu', handleContextMenu);
-    window.addEventListener('keydown', handleKeyDown);
 
     const handlePaste = (e: ClipboardEvent) => {
       const pastedData = e.clipboardData?.getData('text') || '';
@@ -330,20 +347,19 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
           eventType: 'paste',
           description: `Pengguna menempelkan teks sepanjang ${pastedData.length} karakter`,
         });
-        setCheatWarning("⚠️ Peringatan: Menempelkan kode (copy-paste) terdeteksi dan dicatat.");
-        setTimeout(() => setCheatWarning(null), 5000);
+        showCheatWarning("⚠️ Peringatan: Menempelkan kode (copy-paste) terdeteksi dan dicatat.", 5000);
       }
     };
 
     window.addEventListener('paste', handlePaste);
 
     return () => {
+      if (awayIntervalRef.current) clearInterval(awayIntervalRef.current);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('contextmenu', handleContextMenu);
-      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handlePaste);
     };
   }, [phase, isNimLocked, isReadOnly, userId, problemId]);
