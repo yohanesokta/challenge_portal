@@ -5,16 +5,19 @@ on:
 
 jobs:
   build-linux:
-    name: Build Linux (Debian 11)
+    name: Build Linux (Static Binary)
     runs-on: ubuntu-latest
-    container:
-      image: golang:bullseye # Menggunakan image Debian 11 stabil
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: app-octaAnticheat/go.mod
       - name: Build
         run: |
           cd app-octaAnticheat
-          # Menggunakan CGO_ENABLED=0 untuk static binary agar kompatibel di banyak distro
+          # CGO_ENABLED=0 menghasilkan biner statis yang jalan di Debian 11+, Ubuntu, dll.
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o octa-anticheat-linux-amd64
           tar -czvf octa-anticheat-linux-amd64.tar.gz octa-anticheat-linux-amd64
       - name: Upload
@@ -34,7 +37,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '>=1.21' # Menggunakan versi stabil terbaru yang tersedia
+          go-version: '1.26.x'
+          cache-dependency-path: app-octaAnticheat/go.mod
       - name: Build
         run: |
           cd app-octaAnticheat
@@ -54,12 +58,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '>=1.21'
+          go-version: '1.26.x'
+          cache-dependency-path: app-octaAnticheat/go.mod
       - name: Build
         shell: bash
         run: |
           cd app-octaAnticheat
-          # -H=windowsgui untuk menonaktifkan jendela terminal (GUI mode)
           CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -H=windowsgui" -o octa-anticheat-windows-amd64.exe
           tar -czvf octa-anticheat-windows-amd64.tar.gz octa-anticheat-windows-amd64.exe
       - name: Upload
