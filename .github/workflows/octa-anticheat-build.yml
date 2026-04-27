@@ -1,0 +1,71 @@
+name: Build OctaAnticheat
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Linux (Debian 11)
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.26-bullseye
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          cd app-octaAnticheat
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o octa-anticheat-linux-amd64
+          tar -czvf octa-anticheat-linux-amd64.tar.gz octa-anticheat-linux-amd64
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: octa-anticheat-linux-amd64
+          path: app-octaAnticheat/octa-anticheat-linux-amd64.tar.gz
+
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+      - name: Build
+        run: |
+          cd app-octaAnticheat
+          CGO_ENABLED=0 GOOS=darwin GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o octa-anticheat-darwin-${{ matrix.arch }}
+          tar -czvf octa-anticheat-darwin-${{ matrix.arch }}.tar.gz octa-anticheat-darwin-${{ matrix.arch }}
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: octa-anticheat-darwin-${{ matrix.arch }}
+          path: app-octaAnticheat/octa-anticheat-darwin-${{ matrix.arch }}.tar.gz
+
+  build-windows:
+    name: Build Windows (amd64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+      - name: Build
+        shell: bash
+        run: |
+          cd app-octaAnticheat
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -H=windowsgui" -o octa-anticheat-windows-amd64.exe
+          tar -czvf octa-anticheat-windows-amd64.tar.gz octa-anticheat-windows-amd64.exe
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: octa-anticheat-windows-amd64
+          path: app-octaAnticheat/octa-anticheat-windows-amd64.tar.gz
