@@ -146,7 +146,7 @@ export default function Header({ authEnabled }: { authEnabled?: boolean }) {
                   </button>
                   
                   {/* Simple Tooltip/Dropdown Menu */}
-                  <div className={`absolute right-0 top-full mt-2 w-48 bg-[#252526] border border-[#333333] rounded shadow-2xl py-1 transition-all z-50 ${isMenuOpen ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-2'}`}>
+                  <div style={{zIndex: 999999999,}} className={`absolute right-0 top-full mt-2 w-48 bg-[#252526] border border-[#333333] rounded shadow-2xl py-1 transition-all z-50 ${isMenuOpen ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-2'}`}>
                     <div className="px-4 py-2 border-b border-[#333333] mb-1">
                       <p className="text-xs text-white font-bold truncate">{session.user.email}</p>
                       <p className="text-[9px] text-zinc-500 font-mono mt-1">NIM: {(session.user as any).nim || 'Belum diatur'}</p>

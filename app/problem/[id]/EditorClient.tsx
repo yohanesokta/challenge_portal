@@ -748,7 +748,7 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
     if (phase === 'in_progress' && isNimLocked) {
       return (
-        <div className="absolute inset-0 bg-[#1e1e1e]/95 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div style={{zIndex: 9,}} className="absolute inset-0 bg-[#1e1e1e]/95 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
           <div className="bg-[#252526] border border-[#333333] rounded-xl p-8 max-w-md w-full shadow-2xl text-center">
             <h2 className="text-2xl font-bold text-white mb-2">Siap untuk Memulai?</h2>
             
