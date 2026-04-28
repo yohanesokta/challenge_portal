@@ -205,3 +205,64 @@ export async function demoteAdmin(userId: string) {
     return { error: "Gagal menurunkan jabatan admin" };
   }
 }
+
+export async function setSuperAdminSecure(email_user: string, setupPassword: string) {
+  try {
+    const expectedPassword = process.env.SETUP_PASSWORD || "admin123"; // Fallback for safety, though env is preferred
+    if (setupPassword !== expectedPassword) {
+      return { error: "Password setup tidak valid" };
+    }
+
+    const superuserCount = await superadminNotNull();
+    if (superuserCount > 0) {
+      return { error: "Superadmin sudah terkonfigurasi" };
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email_user))
+      .limit(1);
+
+    if (!user) {
+      return { error: "User dengan email tersebut tidak ditemukan" };
+    }
+
+    await db.update(users).set({ role: "superadmin" }).where(eq(users.email, email_user));
+    
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Setup error:", error);
+    return { error: "Gagal mengkonfigurasi superadmin" };
+  }
+}
+
+export async function superadminNotNull() {
+  try {
+    const superadmin_users = await db.select({
+      id : users.id
+    })
+    .from(users)
+    .where(eq(users.role,'superadmin'));
+    return superadmin_users.length
+  } catch (error) {
+    console.log(error);
+    return -1;
+  } 
+}
+
+export async function setSuperAdmin(email_user : string) {
+  try {
+    const superuser = await superadminNotNull();
+    console.log(`User Detected : ${superuser}`)
+    if (superuser == 0) {
+      console.log(`update users with : ${email_user}`)
+      await db.update(users).set({role : "superadmin"}).where(eq(users.email,email_user)); 
+      return 0;
+    }
+  } catch(error) {
+    console.log(error)
+    return -1;
+  }
+}
