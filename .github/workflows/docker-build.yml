@@ -12,6 +12,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Menyiapkan QEMU untuk dukungan multi-platform (opsional tapi bagus untuk dimiliki)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # KRUSIAL: Menyiapkan Docker Buildx agar mendukung GHA Cache
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -22,8 +30,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # SILAKAN GANTI 'username/repository' dengan nama Docker Hub Anda
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/codelabjai
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
           tags: |
             type=raw,value=latest
             type=sha,prefix=,format=short
@@ -35,5 +42,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Sekarang cache-from dan cache-to akan bekerja karena menggunakan driver Buildx
           cache-from: type=gha
           cache-to: type=gha,mode=max
