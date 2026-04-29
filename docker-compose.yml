@@ -16,21 +16,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: always
     ports:
       - '3000:3000'
-    env_file:
-      - .env
-    environment:
-      # Ini adalah kunci rahasianya: kita override localhost menjadi db khusus untuk di dalam container
-      - DATABASE_URL=mysql://root:${MARIADB_ROOT_PASSWORD:-root}@db:3306/${MARIADB_DATABASE:-coding_platform}
-    depends_on:
-      - db
-
-  shortlink:
-    build:
-      context: ./shortlink-service
-      dockerfile: Dockerfile
-    ports:
       - '3001:3001'
     env_file:
       - .env
@@ -38,6 +26,6 @@ services:
       - DATABASE_URL=mysql://root:${MARIADB_ROOT_PASSWORD:-root}@db:3306/${MARIADB_DATABASE:-coding_platform}
     depends_on:
       - db
-    
+
 volumes:
   mariadb_data:

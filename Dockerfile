@@ -1,28 +1,28 @@
 FROM node:20-alpine AS base
 
-# Install dependencies only when needed
+# 1. Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-
-# Install dependencies based on the preferred package manager
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 RUN corepack enable pnpm && pnpm i --frozen-lockfile
 
-# Rebuild the source code only when needed
+# 2. Build Next.js
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Build Next.js
 RUN corepack enable pnpm && pnpm run build
 
-# Production image, copy all the files and run next
+# 3. Build Shortlink Service
+FROM base AS shortlink-builder
+WORKDIR /app/shortlink
+COPY shortlink-service/package*.json ./
+RUN npm install --production
+COPY shortlink-service/ .
+
+# 4. Production image
 FROM base AS runner
 WORKDIR /app
 
@@ -30,7 +30,6 @@ WORKDIR /app
 RUN apk add --no-cache python3
 
 ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
@@ -40,33 +39,31 @@ RUN adduser --system --uid 1001 nextjs
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-# COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-# Next.js standalone output must be enabled in next.config.ts!
-
-# For simple build, we copy everything:
+# Copy Next.js standalone
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy shortlink service
+COPY --from=shortlink-builder --chown=nextjs:nodejs /app/shortlink ./shortlink
+
 # We also need these for running migrations on startup
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-
-# Copy db and drizzle migrations
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+
 # Copy start.sh and fix permissions
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
 USER nextjs
 
-EXPOSE 3000
+# App on 3000, Shortlink on 3001
+EXPOSE 3000 3001
 
 ENV PORT=3000
 
-# Run migrations then start the server
+# Run migrations then start both services
 CMD ["./start.sh"]

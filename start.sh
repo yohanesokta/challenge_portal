@@ -2,7 +2,6 @@
 
 echo "Waiting for database to be ready..."
 # Simple wait loop
-# We don't use set -e here so the loop can retry on connection failure
 MAX_RETRIES=30
 COUNT=0
 
@@ -20,5 +19,10 @@ fi
 
 echo "Database ready and migrated."
 
-echo "Starting Next.js server..."
+echo "Starting Shortlink service on port 3001..."
+# Start shortlink service in background
+node shortlink/index.js &
+
+echo "Starting Next.js server on port 3000..."
+# Start Next.js and replace the shell process
 exec node server.js
