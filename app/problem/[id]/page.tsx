@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { notFound } from "next/navigation";
 import EditorClient from "./EditorClient";
+import TestCasePreview from "./TestCasePreview";
 
 const SOLUTION_TYPE_META: Record<string, { label: string; color: string; icon: string }> = {
   function: { label: 'Function', color: 'text-[#007acc] bg-[#007acc]/20 border-[#007acc]/40', icon: 'function' },
@@ -117,40 +118,9 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
                 <div className="mt-8">
                   <div className="flex items-center gap-2 mb-4">
                     <h3 className="text-white font-bold">Kasus Pengujian</h3>
-                    <span className="text-[10px] text-zinc-500 italic">— semua terlihat</span>
+                    <span className="text-[10px] text-zinc-500 italic">— klik untuk buka/tutup</span>
                   </div>
-                  <div className="space-y-4">
-                    {problem.testCases.map((tc: any, idx: number) => (
-                      <div key={idx} className="bg-[#252526] rounded border border-[#333333] overflow-hidden">
-                        <div className="flex items-center justify-between px-3 py-2 bg-[#2d2d2d] border-b border-[#333333]">
-                          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Kasus #{idx + 1}</span>
-                        </div>
-                        {tc.testScript ? (
-                          <div className="p-3">
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-2">Skrip Pengujian (Python)</span>
-                            <pre className="bg-[#1e1e1e] p-3 rounded text-xs text-green-300 font-mono whitespace-pre-wrap overflow-x-auto border border-[#333333]">{tc.testScript}</pre>
-                          </div>
-                        ) : (
-                          <div className="p-3 grid grid-cols-2 gap-3">
-                            <div>
-                              <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Input</span>
-                              <code className="bg-[#1e1e1e] p-2 block rounded text-sm text-zinc-300 font-mono whitespace-pre-wrap">{tc.input || '(tidak ada)'}</code>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Output Diharapkan</span>
-                              <code className="bg-[#1e1e1e] p-2 block rounded text-sm text-zinc-300 font-mono whitespace-pre-wrap">{tc.expectedOutput || '(tidak ada)'}</code>
-                            </div>
-                          </div>
-                        )}
-                        {solutionType === 'bebas' && tc.expectedOutput && tc.testScript && (
-                          <div className="px-3 pb-3">
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Output Diharapkan (Fallback)</span>
-                            <code className="bg-[#1e1e1e] p-2 block rounded text-xs text-zinc-400 font-mono whitespace-pre-wrap">{tc.expectedOutput}</code>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <TestCasePreview testCases={problem.testCases} />
                 </div>
               )}
             </div>

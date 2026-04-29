@@ -260,8 +260,10 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
     return { activeWindow };
   }, [isGoAppRunning]);
 
+  const [expandedTests, setExpandedTests] = useState<Record<number, boolean>>({ 0: true });
+
   useEffect(() => {
-    if (phase !== 'in_progress' || isNimLocked || isReadOnly) return;
+    if (!antiCheatEnabled || phase !== 'in_progress' || isNimLocked || isReadOnly) return;
 
     let lastLogTime = 0;
 
@@ -1078,9 +1080,12 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                         }`}
                       >
                         {/* Test case header */}
-                        <div className={`flex items-center gap-3 px-3 py-2 border-b ${
-                          result.passed ? 'border-green-900/30 bg-green-900/20' : 'border-red-900/30 bg-red-900/20'
-                        }`}>
+                        <div 
+                          onClick={() => setExpandedTests(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                          className={`flex items-center gap-3 px-3 py-2 border-b cursor-pointer hover:brightness-110 transition-all ${
+                            result.passed ? 'border-green-900/30 bg-green-900/20' : 'border-red-900/30 bg-red-900/20'
+                          }`}
+                        >
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                             result.passed ? 'bg-green-600' : 'bg-red-600'
                           }`}>
@@ -1091,54 +1096,89 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
                           <span className="text-xs font-bold text-white flex-1">
                             Kasus #{idx + 1}
                           </span>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                            result.passed ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {result.passed ? '✓ Lulus' : '✗ Gagal'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                              result.passed ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {result.passed ? '✓ Lulus' : '✗ Gagal'}
+                            </span>
+                            <span className="material-symbols-outlined text-zinc-500 text-sm">
+                              {expandedTests[idx] ? 'expand_less' : 'expand_more'}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Test script (collapsible) */}
-                        {result.testScript && (
-                          <details className="px-3 pt-2 pb-1">
-                            <summary className="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none flex items-center gap-1">
-                              <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>code</span>
-                              Lihat skrip pengujian
-                            </summary>
-                            <pre className="mt-2 bg-black/30 p-2 rounded text-[10px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto border border-[#333333]">{result.testScript}</pre>
-                          </details>
-                        )}
+                        {expandedTests[idx] && (
+                          <div className="animate-in slide-in-from-top-2 duration-200">
+                            {/* Test script (collapsible) */}
+                            {result.testScript && (
+                              <div className="px-3 pt-3 pb-1">
+                                <div className="text-[10px] text-zinc-500 mb-2 flex items-center gap-1">
+                                  <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>code</span>
+                                  Skrip Pengujian:
+                                </div>
+                                <div className="rounded border border-[#333333] overflow-hidden">
+                                  <Editor
+                                    height="120px"
+                                    defaultLanguage="python"
+                                    theme="vs-dark"
+                                    value={result.testScript}
+                                    options={{
+                                      readOnly: true,
+                                      fontSize: 11,
+                                      minimap: { enabled: false },
+                                      automaticLayout: true,
+                                      scrollBeyondLastLine: false,
+                                      lineNumbers: 'off',
+                                      glyphMargin: false,
+                                      folding: false,
+                                      lineDecorationsWidth: 0,
+                                      lineNumbersMinChars: 0,
+                                      padding: { top: 8, bottom: 8 },
+                                      fontFamily: "'Fira Code', 'Courier New', monospace",
+                                      scrollbar: {
+                                        vertical: 'hidden',
+                                        horizontal: 'auto',
+                                        handleMouseWheel: true,
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
 
-                        {/* Passed: show stdout */}
-                        {result.passed && result.actualOutput && (
-                          <div className="px-3 pb-3 pt-1">
-                            <span className="text-[10px] text-zinc-500 block mb-1 flex items-center gap-1">
-                              <span className="material-symbols-outlined text-green-500" style={{ fontSize: '11px' }}>terminal</span>
-                              Output:
-                            </span>
-                            <div className="text-[11px] font-mono text-green-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-green-900/20">
-                              {result.actualOutput || '(tidak ada output)'}
-                            </div>
-                          </div>
-                        )}
+                            {/* Passed: show stdout */}
+                            {result.passed && result.actualOutput && (
+                              <div className="px-3 pb-3 pt-1">
+                                <span className="text-[10px] text-zinc-500 block mb-1 flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-green-500" style={{ fontSize: '11px' }}>terminal</span>
+                                  Output:
+                                </span>
+                                <div className="text-[11px] font-mono text-green-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-green-900/20">
+                                  {result.actualOutput || '(tidak ada output)'}
+                                </div>
+                              </div>
+                            )}
 
-                        {/* Failed: show error */}
-                        {!result.passed && result.error && (
-                          <div className="px-3 pb-3 pt-1">
-                            <span className="text-[10px] text-zinc-500 block mb-1">Error:</span>
-                            <div className="text-[11px] font-mono text-red-400 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">
-                              {result.error}
-                            </div>
-                          </div>
-                        )}
+                            {/* Failed: show error */}
+                            {!result.passed && result.error && (
+                              <div className="px-3 pb-3 pt-1">
+                                <span className="text-[10px] text-zinc-500 block mb-1">Error:</span>
+                                <div className="text-[11px] font-mono text-red-400 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                                  {result.error}
+                                </div>
+                              </div>
+                            )}
 
-                        {/* Failed: show actual output */}
-                        {!result.passed && result.actualOutput && (
-                          <div className="px-3 pb-3">
-                            <span className="text-[10px] text-zinc-500 block mb-1">Output yang Dihasilkan:</span>
-                            <div className="text-[11px] font-mono text-zinc-300 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre">
-                              {result.actualOutput}
-                            </div>
+                            {/* Failed: show actual output */}
+                            {!result.passed && result.actualOutput && (
+                              <div className="px-3 pb-3">
+                                <span className="text-[10px] text-zinc-500 block mb-1">Output yang Dihasilkan:</span>
+                                <div className="text-[11px] font-mono text-zinc-300 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre">
+                                  {result.actualOutput}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1413,41 +1453,80 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
                       {/* Individual results */}
                       {reviewTestResults.map((result, idx) => (
-                        <div key={idx} className={`border rounded-lg overflow-hidden ${result.passed ? 'bg-green-900/10 border-green-900/40' : 'bg-red-900/10 border-red-700/40'}`}>
-                          <div className={`flex items-center gap-3 px-3 py-2 border-b ${result.passed ? 'border-green-900/30 bg-green-900/20' : 'border-red-900/30 bg-red-900/20'}`}>
+                        <div key={idx} className={`border rounded-lg overflow-hidden ${result.passed ? 'bg-green-900/10 border-green-900/40' : 'bg-red-900/10 border-red-900/40'}`}>
+                          <div 
+                            onClick={() => setExpandedTests(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                            className={`flex items-center gap-3 px-3 py-2 border-b cursor-pointer hover:brightness-110 transition-all ${result.passed ? 'border-green-900/30 bg-green-900/20' : 'border-red-900/30 bg-red-900/20'}`}
+                          >
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${result.passed ? 'bg-green-600' : 'bg-red-600'}`}>
                               <span className="material-symbols-outlined text-white" style={{ fontSize: '14px' }}>{result.passed ? 'check' : 'close'}</span>
                             </div>
                             <span className="text-xs font-bold text-white flex-1">Kasus #{idx + 1}</span>
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${result.passed ? 'text-green-400' : 'text-red-400'}`}>
-                              {result.passed ? '✓ Lulus' : '✗ Gagal'}
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-[10px] font-bold uppercase tracking-widest ${result.passed ? 'text-green-400' : 'text-red-400'}`}>
+                                {result.passed ? '✓ Lulus' : '✗ Gagal'}
+                              </span>
+                              <span className="material-symbols-outlined text-zinc-500 text-sm">
+                                {expandedTests[idx] ? 'expand_less' : 'expand_more'}
+                              </span>
+                            </div>
                           </div>
-                          {result.testScript && (
-                            <details className="px-3 pt-2 pb-1">
-                              <summary className="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none flex items-center gap-1">
-                                <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>code</span>
-                                Lihat skrip pengujian
-                              </summary>
-                              <pre className="mt-2 bg-black/30 p-2 rounded text-[10px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto border border-[#333333]">{result.testScript}</pre>
-                            </details>
-                          )}
-                          {result.passed && result.actualOutput && (
-                            <div className="px-3 pb-3 pt-1">
-                              <span className="text-[10px] text-zinc-500 block mb-1">Output:</span>
-                              <div className="text-[11px] font-mono text-green-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-green-900/20">{result.actualOutput || '(tidak ada output)'}</div>
-                            </div>
-                          )}
-                          {!result.passed && result.error && (
-                            <div className="px-3 pb-3 pt-1">
-                              <span className="text-[10px] text-zinc-500 block mb-1">Error:</span>
-                              <div className="text-[11px] font-mono text-red-400 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">{result.error}</div>
-                            </div>
-                          )}
-                          {!result.passed && result.actualOutput && (
-                            <div className="px-3 pb-3">
-                              <span className="text-[10px] text-zinc-500 block mb-1">Output yang Dihasilkan:</span>
-                              <div className="text-[11px] font-mono text-zinc-300 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre">{result.actualOutput}</div>
+
+                          {expandedTests[idx] && (
+                            <div className="animate-in slide-in-from-top-2 duration-200">
+                              {result.testScript && (
+                                <div className="px-3 pt-3 pb-1">
+                                  <div className="text-[10px] text-zinc-500 mb-2 flex items-center gap-1">
+                                    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>code</span>
+                                    Skrip Pengujian:
+                                  </div>
+                                  <div className="rounded border border-[#333333] overflow-hidden">
+                                    <Editor
+                                      height="120px"
+                                      defaultLanguage="python"
+                                      theme="vs-dark"
+                                      value={result.testScript}
+                                      options={{
+                                        readOnly: true,
+                                        fontSize: 11,
+                                        minimap: { enabled: false },
+                                        automaticLayout: true,
+                                        scrollBeyondLastLine: false,
+                                        lineNumbers: 'off',
+                                        glyphMargin: false,
+                                        folding: false,
+                                        lineDecorationsWidth: 0,
+                                        lineNumbersMinChars: 0,
+                                        padding: { top: 8, bottom: 8 },
+                                        fontFamily: "'Fira Code', 'Courier New', monospace",
+                                        scrollbar: {
+                                          vertical: 'hidden',
+                                          horizontal: 'auto',
+                                          handleMouseWheel: true,
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              {result.passed && result.actualOutput && (
+                                <div className="px-3 pb-3 pt-1">
+                                  <span className="text-[10px] text-zinc-500 block mb-1">Output:</span>
+                                  <div className="text-[11px] font-mono text-green-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-green-900/20">{result.actualOutput || '(tidak ada output)'}</div>
+                                </div>
+                              )}
+                              {!result.passed && result.error && (
+                                <div className="px-3 pb-3 pt-1">
+                                  <span className="text-[10px] text-zinc-500 block mb-1">Error:</span>
+                                  <div className="text-[11px] font-mono text-red-400 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre-wrap">{result.error}</div>
+                                </div>
+                              )}
+                              {!result.passed && result.actualOutput && (
+                                <div className="px-3 pb-3">
+                                  <span className="text-[10px] text-zinc-500 block mb-1">Output yang Dihasilkan:</span>
+                                  <div className="text-[11px] font-mono text-zinc-300 bg-black/40 p-2 rounded overflow-x-auto whitespace-pre">{result.actualOutput}</div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
