@@ -55,3 +55,11 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #444444;
 }
+
+/* Remove backticks from inline code in tailwind typography */
+.prose :where(code):not(:where([class~="not-prose"] *, pre *))::before {
+  content: "" !important;
+}
+.prose :where(code):not(:where([class~="not-prose"] *, pre *))::after {
+  content: "" !important;
+}

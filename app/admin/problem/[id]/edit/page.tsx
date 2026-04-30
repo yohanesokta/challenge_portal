@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { getProblemById, updateProblem } from "@/app/actions/problem";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
+import MarkdownRenderer from "@/app/components/MarkdownRenderer";
 import TestScriptEditor from "@/app/components/TestScriptEditor";
 
 type SolutionType = 'function' | 'class' | 'bebas';
@@ -195,9 +195,9 @@ export default function EditProblem() {
                   placeholder="Gunakan Markdown untuk deskripsi soal Anda..."
                 />
               ) : (
-                <div className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-4 min-h-[192px] prose prose-invert prose-sm max-w-none">
+                <div className="w-full bg-[#1e1e1e] border border-[#333333] text-white rounded p-4 min-h-[192px] max-w-none">
                   {description ? (
-                    <ReactMarkdown>{description}</ReactMarkdown>
+                    <MarkdownRenderer content={description} />
                   ) : (
                     <span className="text-zinc-600 italic">Tidak ada pratinjau (deskripsi kosong).</span>
                   )}

@@ -1,7 +1,6 @@
 import { getProblemById } from "@/app/actions/problem";
 import Header from "../../components/Header";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/app/components/MarkdownRenderer";
 import { notFound } from "next/navigation";
 import EditorClient from "./EditorClient";
 import TestCasePreview from "./TestCasePreview";
@@ -107,10 +106,8 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
 
               <h1 className="font-h1 text-h1 text-white mb-4">{problem.title}</h1>
               
-              <div className="prose prose-invert max-w-none prose-pre:bg-[#252526] prose-pre:border prose-pre:border-[#333333] prose-code:text-primary prose-a:text-primary hover:prose-a:underline">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {problem.description}
-                </ReactMarkdown>
+              <div className="prose prose-invert max-w-none">
+                <MarkdownRenderer content={problem.description} />
               </div>
 
               {/* Test cases — all visible */}
