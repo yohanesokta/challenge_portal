@@ -281,6 +281,18 @@ export default function ReviewClient({
                         </span>
                       </div>
 
+                      {result.input && (
+                        <div className="px-3 pt-3 pb-1">
+                          <span className="text-[10px] text-zinc-500 block mb-1 flex items-center gap-1">
+                            <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>input</span>
+                            Masukan (Stdin):
+                          </span>
+                          <div className="text-[11px] font-mono text-zinc-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-[#333333]">
+                            {result.input}
+                          </div>
+                        </div>
+                      )}
+
                       {result.testScript && (
                         <details className="px-3 pt-2 pb-1">
                           <summary className="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none flex items-center gap-1">

@@ -149,13 +149,14 @@ function countLines(str: string): number {
  */
 async function evaluatorFunction(
   userCode: string,
-  testScript: string
+  testScript: string,
+  input?: string | null
 ): Promise<{ passed: boolean; actualOutput: string; error: string }> {
   const separator = '\n\n# --- Test Script ---\n';
   const combined = `${userCode}${separator}${testScript}`;
   const userLines = countLines(userCode);
   const testScriptStartLine = userLines + 2; // +2 for the two blank lines before separator comment
-  const result = await runPythonCodeInternal(combined);
+  const result = await runPythonCodeInternal(combined, input || undefined);
   return {
     passed: result.exitCode === 0,
     actualOutput: result.stdout,
@@ -170,13 +171,14 @@ async function evaluatorFunction(
  */
 async function evaluatorClass(
   userCode: string,
-  testScript: string
+  testScript: string,
+  input?: string | null
 ): Promise<{ passed: boolean; actualOutput: string; error: string }> {
   const separator = '\n\n# --- Test Script ---\n';
   const combined = `${userCode}${separator}${testScript}`;
   const userLines = countLines(userCode);
   const testScriptStartLine = userLines + 2;
-  const result = await runPythonCodeInternal(combined);
+  const result = await runPythonCodeInternal(combined, input || undefined);
   return {
     passed: result.exitCode === 0,
     actualOutput: result.stdout,
@@ -193,7 +195,8 @@ async function evaluatorClass(
 async function evaluatorBebas(
   userCode: string,
   testScript: string,
-  expectedOutput?: string | null
+  expectedOutput?: string | null,
+  input?: string | null
 ): Promise<{ passed: boolean; actualOutput: string; error: string }> {
   // If testScript has real content (not just comment), use it as evaluator
   const scriptLines = testScript.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
@@ -201,7 +204,7 @@ async function evaluatorBebas(
 
   if (hasScript) {
     const combined = `${userCode}\n\n# --- Test Script ---\n${testScript}`;
-    const result = await runPythonCodeInternal(combined);
+    const result = await runPythonCodeInternal(combined, input || undefined);
     return {
       passed: result.exitCode === 0,
       actualOutput: result.stdout,
@@ -210,7 +213,7 @@ async function evaluatorBebas(
   }
 
   // Fallback: run code and compare stdout
-  const result = await runPythonCodeInternal(userCode);
+  const result = await runPythonCodeInternal(userCode, input || undefined);
   const passed = result.exitCode === 0
     ? result.stdout.trim() === (expectedOutput || '').trim()
     : false;
@@ -325,12 +328,12 @@ export async function runTests(data: { problemId: string; code: string }) {
       const script = testCase.testScript || '';
 
       if (solutionType === 'function') {
-        result = await evaluatorFunction(data.code, script);
+        result = await evaluatorFunction(data.code, script, testCase.input);
       } else if (solutionType === 'class') {
-        result = await evaluatorClass(data.code, script);
+        result = await evaluatorClass(data.code, script, testCase.input);
       } else {
         // bebas
-        result = await evaluatorBebas(data.code, script, testCase.expectedOutput);
+        result = await evaluatorBebas(data.code, script, testCase.expectedOutput, testCase.input);
       }
 
       if (!result.passed) allPassed = false;
@@ -341,6 +344,7 @@ export async function runTests(data: { problemId: string; code: string }) {
         actualOutput: result.actualOutput,
         error: result.error,
         testScript: script,
+        input: testCase.input,
         solutionType,
       });
     }

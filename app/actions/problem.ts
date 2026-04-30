@@ -93,6 +93,7 @@ export async function getProblemById(id: string) {
 export interface TestCaseInput {
   testScript: string;
   expectedOutput?: string; // only for 'bebas' type
+  input?: string | null;
 }
 
 export interface ProblemInput {
@@ -161,9 +162,8 @@ export async function createProblem(data: ProblemInput) {
           problemId: id,
           testScript: tc.testScript,
           expectedOutput: tc.expectedOutput || null,
-          // legacy fields kept as null for new records
           type: data.solutionType === 'bebas' ? 'standard' : 'script',
-          input: null,
+          input: tc.input || null,
         }))
       );
     }
@@ -249,7 +249,7 @@ export async function updateProblem(id: string, data: ProblemInput) {
           testScript: tc.testScript,
           expectedOutput: tc.expectedOutput || null,
           type: data.solutionType === 'bebas' ? 'standard' : 'script',
-          input: null,
+          input: tc.input || null,
         }))
       );
     }

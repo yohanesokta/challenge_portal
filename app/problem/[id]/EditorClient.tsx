@@ -1110,6 +1110,19 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
                         {expandedTests[idx] && (
                           <div className="animate-in slide-in-from-top-2 duration-200">
+                            {/* Input used */}
+                            {result.input && (
+                              <div className="px-3 pt-3 pb-1">
+                                <span className="text-[10px] text-zinc-500 block mb-1 flex items-center gap-1">
+                                  <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>input</span>
+                                  Masukan (Stdin):
+                                </span>
+                                <div className="text-[11px] font-mono text-zinc-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-[#333333]">
+                                  {result.input}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Test script (collapsible) */}
                             {result.testScript && (
                               <div className="px-3 pt-3 pb-1">
@@ -1474,6 +1487,19 @@ export default function EditorClient({ problemId, endTime, duration, timingMode,
 
                           {expandedTests[idx] && (
                             <div className="animate-in slide-in-from-top-2 duration-200">
+                              {/* Input used */}
+                              {result.input && (
+                                <div className="px-3 pt-3 pb-1">
+                                  <span className="text-[10px] text-zinc-500 block mb-1 flex items-center gap-1">
+                                    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>input</span>
+                                    Masukan (Stdin):
+                                  </span>
+                                  <div className="text-[11px] font-mono text-zinc-300 bg-black/20 p-2 rounded overflow-x-auto whitespace-pre border border-[#333333]">
+                                    {result.input}
+                                  </div>
+                                </div>
+                              )}
+
                               {result.testScript && (
                                 <div className="px-3 pt-3 pb-1">
                                   <div className="text-[10px] text-zinc-500 mb-2 flex items-center gap-1">

@@ -17,10 +17,17 @@ export default function TestCasePreview({ testCases }: TestCasePreviewProps) {
               <span className="material-symbols-outlined text-zinc-500 text-sm group-open:rotate-180 transition-transform">expand_more</span>
             </summary>
             
-            <div className="p-3">
-              {tc.testScript ? (
+            <div className="p-4 space-y-4">
+              {tc.input && (
                 <div>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-2">Skrip Pengujian (Python)</span>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1 tracking-wider">Input (Stdin)</span>
+                  <code className="bg-[#1e1e1e] p-3 block rounded text-sm text-zinc-300 font-mono border border-[#333333] whitespace-pre-wrap">{tc.input}</code>
+                </div>
+              )}
+
+              {tc.testScript && (
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1 tracking-wider">Skrip Pengujian (Python)</span>
                   <div className="rounded border border-[#333333] overflow-hidden bg-[#1e1e1e]">
                     <Editor
                       height="120px"
@@ -38,7 +45,7 @@ export default function TestCasePreview({ testCases }: TestCasePreviewProps) {
                         folding: false,
                         lineDecorationsWidth: 0,
                         lineNumbersMinChars: 0,
-                        padding: { top: 8, bottom: 8 },
+                        padding: { top: 12, bottom: 12 },
                         fontFamily: "'Fira Code', 'Courier New', monospace",
                         scrollbar: {
                           vertical: 'hidden',
@@ -49,23 +56,17 @@ export default function TestCasePreview({ testCases }: TestCasePreviewProps) {
                     />
                   </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Input</span>
-                    <code className="bg-[#1e1e1e] p-2 block rounded text-sm text-zinc-300 font-mono whitespace-pre-wrap">{tc.input || '(tidak ada)'}</code>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Output Diharapkan</span>
-                    <code className="bg-[#1e1e1e] p-2 block rounded text-sm text-zinc-300 font-mono whitespace-pre-wrap">{tc.expectedOutput || '(tidak ada)'}</code>
-                  </div>
+              )}
+
+              {tc.expectedOutput && (
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1 tracking-wider">Output yang Diharapkan</span>
+                  <code className="bg-[#1e1e1e] p-3 block rounded text-sm text-green-500/80 font-mono border border-green-600/20 whitespace-pre-wrap shadow-inner">{tc.expectedOutput}</code>
                 </div>
               )}
-              {tc.expectedOutput && tc.testScript && (
-                <div className="mt-3">
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Output Diharapkan (Fallback)</span>
-                  <code className="bg-[#1e1e1e] p-2 block rounded text-xs text-zinc-400 font-mono whitespace-pre-wrap">{tc.expectedOutput}</code>
-                </div>
+
+              {!tc.input && !tc.testScript && !tc.expectedOutput && (
+                <div className="text-zinc-600 italic text-[10px] py-2">Tidak ada data pengujian yang spesifik.</div>
               )}
             </div>
           </details>

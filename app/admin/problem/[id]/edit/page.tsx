@@ -12,6 +12,7 @@ type SolutionType = 'function' | 'class' | 'bebas';
 interface TestCase {
   testScript: string;
   expectedOutput?: string;
+  input?: string;
 }
 
 function getDefaultScript(solutionType: SolutionType, functionName?: string, className?: string): string {
@@ -73,6 +74,7 @@ export default function EditProblem() {
         setTestCases(problem.testCases.map((tc: any) => ({
           testScript: tc.testScript || '',
           expectedOutput: tc.expectedOutput || '',
+          input: tc.input || '',
         })));
       }
       setIsLoading(false);
@@ -83,7 +85,8 @@ export default function EditProblem() {
   const handleAddTestCase = () => {
     setTestCases([...testCases, {
       testScript: getDefaultScript(solutionType, functionName, className),
-      expectedOutput: ''
+      expectedOutput: '',
+      input: ''
     }]);
   };
 
@@ -449,19 +452,34 @@ export default function EditProblem() {
                     />
                   </div>
 
-                  {solutionType === 'bebas' && (
-                    <div className="mt-4">
-                      <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Output yang Diharapkan (Stdout) — Opsional</label>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Input untuk Kode User (Stdin) — Opsional</label>
+                      <p className="text-[10px] text-zinc-600 mb-2 italic">Data yang akan diterima oleh fungsi `input()` di kode mahasiswa.</p>
                       <textarea
-                        value={tc.expectedOutput || ''}
-                        onChange={(e) => handleTestCaseChange(index, 'expectedOutput', e.target.value)}
+                        value={tc.input || ''}
+                        onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
                         rows={3}
-                        className="w-full bg-[#252526] border border-[#333333] text-zinc-300 rounded p-3 text-sm font-mono focus:outline-none focus:border-purple-600"
-                        placeholder="Contoh: Hello, World!"
+                        className="w-full bg-[#252526] border border-[#333333] text-zinc-300 rounded p-3 text-sm font-mono focus:outline-none focus:border-green-600"
+                        placeholder="Contoh: 10"
                         spellCheck={false}
                       />
                     </div>
-                  )}
+                    {solutionType === 'bebas' && (
+                      <div>
+                        <label className="block text-zinc-500 text-[10px] font-bold uppercase mb-2">Output yang Diharapkan (Stdout) — Opsional</label>
+                        <p className="text-[10px] text-zinc-600 mb-2 italic">Jika skrip di atas kosong, output program akan dibandingkan dengan teks ini secara persis.</p>
+                        <textarea
+                          value={tc.expectedOutput || ''}
+                          onChange={(e) => handleTestCaseChange(index, 'expectedOutput', e.target.value)}
+                          rows={3}
+                          className="w-full bg-[#252526] border border-[#333333] text-zinc-300 rounded p-3 text-sm font-mono focus:outline-none focus:border-purple-600"
+                          placeholder="Contoh: Hello, World!"
+                          spellCheck={false}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
