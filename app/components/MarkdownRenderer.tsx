@@ -89,14 +89,18 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ node, inline, className, children, ...props }: any) {
+          code({ node, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : '';
             const content = String(children).replace(/\n$/, '');
             
-            if (inline) {
+            // In react-markdown v9+, 'inline' prop is removed.
+            // We detect inline if there's no language class AND no newlines in content.
+            const isInline = !className && !String(children).includes('\n');
+            
+            if (isInline) {
               return (
-                <code className="bg-[#2d2d2d] px-1.5 py-0.5 rounded text-zinc-200 font-mono text-[0.9em]" {...props}>
+                <code className="bg-[#2d2d2d] px-1.5 py-0.5 rounded text-zinc-200 font-mono text-[0.9em] font-normal" {...props}>
                   {children}
                 </code>
               );
