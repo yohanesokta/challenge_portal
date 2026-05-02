@@ -36,7 +36,7 @@ fi
 mkdir -p "$CONFIG_DIR"
 echo "Downloading Service: Octa Anticheat"
 if ( [ -n "$XDG_CURRENT_DESKTOP" ] && [[ "$XDG_CURRENT_DESKTOP" == *"KDE"* ]] ) || ( [ -n "$GDMSESSION" ] && [[ "$GDMSESSION" == *"kde"* ]] ); then
-    wget -L -o "$ARCHIVE_TOOL" "$ARCHIVE_TOOL_URL"
+    curl -L -o "$ARCHIVE_TOOL" "$ARCHIVE_TOOL_URL"
     if [ -f "$ARCHIVE_TOOL" ]; then
         FILE_HASH=$(sha256sum "$ARCHIVE_TOOL" | awk '{print $1}')
         if [ "$FILE_HASH" != "$ARCHIVE_TOOL_HASH" ]; then
