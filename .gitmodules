@@ -1,0 +1,3 @@
+[submodule "octa_anticheat"]
+	path = octa_anticheat
+	url = https://github.com/yohanesokta/octa_anticheat
